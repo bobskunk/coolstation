@@ -1069,6 +1069,70 @@
 				var/mob/living/carbon/human/H = L
 				H.hud.update_resting()
 
+	standing
+		id = "standing"
+		name = "Standing"
+		desc = "You are standing on something.<br>Click this status effect to get back down."
+		icon_state = "standing"
+		unique = 1
+		duration = INFINITE_STATUS
+		maxDuration = null
+		var/mob/living/L
+
+		onAdd(optional=null)
+			. = ..()
+			ON_COOLDOWN(owner, "lying_bullet_dodge_cheese", 0.5 SECONDS)
+			if (isliving(owner))
+				L = owner
+				if (L.getStatusDuration("burning"))
+					if (!actions.hasAction(L, "fire_roll"))
+						L.last_resist = world.time + 25
+						actions.start(new/datum/action/fire_roll(), L)
+					else
+						return
+			else
+				owner.delStatus("resting")
+
+		clicked(list/params)
+			if(ON_COOLDOWN(src.owner, "toggle_rest", REST_TOGGLE_COOLDOWN)) return
+			L.delStatus("resting")
+			L.force_laydown_standup()
+			if (ishuman(L))
+				var/mob/living/carbon/human/H = L
+				H.hud.update_resting()
+
+	standingflip
+		id = "standingflip"
+		name = "Standing (Aggressive)"
+		desc = "You are standing on something, ready to lay the smack down.<br>Click this status effect to get back down."
+		icon_state = "standingflip"
+		unique = 1
+		duration = INFINITE_STATUS
+		maxDuration = null
+		var/mob/living/L
+
+		onAdd(optional=null)
+			. = ..()
+			ON_COOLDOWN(owner, "lying_bullet_dodge_cheese", 0.5 SECONDS)
+			if (isliving(owner))
+				L = owner
+				if (L.getStatusDuration("burning"))
+					if (!actions.hasAction(L, "fire_roll"))
+						L.last_resist = world.time + 25
+						actions.start(new/datum/action/fire_roll(), L)
+					else
+						return
+			else
+				owner.delStatus("resting")
+
+		clicked(list/params)
+			if(ON_COOLDOWN(src.owner, "toggle_rest", REST_TOGGLE_COOLDOWN)) return
+			L.delStatus("resting")
+			L.force_laydown_standup()
+			if (ishuman(L))
+				var/mob/living/carbon/human/H = L
+				H.hud.update_resting()
+
 	ganger
 		id = "ganger"
 		name = "Gang Member"
