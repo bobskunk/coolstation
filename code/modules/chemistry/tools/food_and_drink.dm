@@ -441,6 +441,14 @@
 	throw_speed = 1
 	var/can_recycle = 1
 	var/can_chug = 1
+	var/breakable = 0 //can it be broken in part?
+	var/smashable = 0 //can it be totally destroyed
+	var/broken = 0 //useless, jagged opening or crack, but it's still mostly intact (stabby bottles)
+	var/smashed = 0 //completely destroyed
+	var/shard_amt = 0 //when busted, make shards
+	var/sealed = 0 //is this plugged in some way? whether or not it's toggleable
+	var/opentop = 0 //is there a neck like a bottle or a hole like a can that might negate some spillage, or is it just open like a drinking glass?
+	var/integrity = 0 //0 is fine, the higher this number, the higher chance to break
 
 	New()
 		..()
@@ -565,6 +573,8 @@
 		return 0
 
 	//bleck, i dont like this at all. (Copied from chemistry-tools reagent_containers/glass/ definition w minor adjustments)
+	//compromise: mousedrag to fill, click to spill
+	//remind me (bob) to do this if you see this
 	afterattack(obj/target, mob/user , flag)
 		user.lastattacked = target
 		if (istype(target, /obj/fluid)) // fluid handling : If src is empty, fill from fluid. otherwise add to the fluid.
@@ -781,13 +791,12 @@
 	var/static/image/image_label = null
 	var/static/image/image_ice = null
 	var/ice = null
-	var/unbreakable = 0
-	var/broken = 0
+	breakable = 1
+	smashable = 1
 	var/bottle_style = "clear"
 	var/fluid_style = "bottle"
 	var/alt_filled_state = null // does our icon state gain a 1 if we've got fluid? put that 1 in this here var if so!
 	var/fluid_underlay_shows_volume = FALSE // determines whether this bottle is special and shows reagent volume
-	var/shatter = 0
 	initial_volume = 50
 	g_amt = 60
 
@@ -891,7 +900,7 @@
 			return
 
 	attack(target as mob, mob/user as mob)
-		if (src.broken && !src.unbreakable)
+		if (src.broken && src.breakable)
 			force = 5.0
 			throwforce = 10.0
 			throw_range = 5
@@ -928,7 +937,7 @@
 		if (!user || !target || user.a_intent != "harm" || issilicon(user))
 			return
 
-		if (src.unbreakable)
+		if (!src.breakable)
 			boutput(user, "[src] bounces uselessly off [target]!")
 			return
 
@@ -997,8 +1006,8 @@
 	var/obj/item/cocktail_stuff/drink_umbrella/umbrella = null
 	var/obj/item/cocktail_stuff/in_glass = null
 	initial_volume = 50
-	var/smashed = 0
-	var/shard_amt = 1
+	smashed = 0
+	shard_amt = 1
 
 	var/image/fluid_image
 	var/image/image_ice
@@ -1272,8 +1281,12 @@
 	ex_act(severity)
 		src.smash()
 
+	//turn this thing into glass shards and dump any reagents on turf or thing it is smashing on, by indirect action (thrown, exploded)
+	//Accepts: the atom it's smashing against, optionally the severity of the smashing, optionally the doer of the smashing (logs, etc)
 	proc/smash(var/atom/A)
 		if (src.smashed)
+			return
+		if (!src.smashable)
 			return
 		src.smashed = 1
 
@@ -1302,6 +1315,18 @@
 	throw_impact(atom/A, datum/thrown_thing/thr)
 		..()
 		src.smash(A)
+
+	//something is using an in-hand action to smash this thing on another thing with varying results (smash on someone's head, smash against a wall or table, etc)
+	//Accepts: the atom it's smashing against, the mob doing the smashing, optionally the severity of the smashing
+	//Checks if the thing is partially breakable and if so try to do that against a valid target. Otherwise, try to smash/shatter it.
+	//If partially broken, change nature of damage to slicing/stabbing (and still have a chance of smashing/shattering)
+	//Example: a bottle is partially breakable and totally smashable, but a drinking glass can't be broken in the same way..
+	//Drinking from broken glasses or bottles is a bad idea (slice lips, swallow glass)
+	//Optionally: possibility to set leaky state and loop on them
+	//if it's not breakable or smashable or anything, do a painful but not very harmful bonk
+
+	//Spill or smash a thing when dropped, depending on openness and sealedness and breakability and etc.
+	//If sealed and carbonated, build pressure and have a chance to pop (flipping and throwing also increases this)
 
 //this action accepts a target that is not the owner, incase we want to allow forced chugging.
 /datum/action/bar/icon/chug
@@ -1591,15 +1616,8 @@
 			src.UpdateOverlays(null, "fluid")
 
 /* ============================================== */
-/* -------------------- Misc -------------------- */
+/* ---------------- Coffee Time ----------------- */
 /* ============================================== */
-
-/obj/item/reagent_containers/food/drinks/skull_chalice
-	name = "skull chalice"
-	desc = "A thing which you can drink fluids out of. Um. It's made from a skull. Considering how many holes are in skulls, this is perhaps a questionable design."
-	icon_state = "skullchalice"
-	item_state = "skullchalice"
-	can_recycle = FALSE
 
 /obj/item/reagent_containers/food/drinks/mug
 	name = "mug"
@@ -1622,58 +1640,61 @@
 		initial_volume = 120
 		initial_reagents = list("coffee" = 80, "vodka" = 40)
 
-/obj/item/reagent_containers/food/drinks/mug/HoS
-	name = "Head of Security's mug"
-	desc = ""
-	icon_state = "HoSMug"
-	item_state = "mug"
+	HoS
+		name = "Head of Security's mug"
+		desc = ""
+		icon_state = "HoSMug"
+		item_state = "mug"
 
-	get_desc(var/dist, var/mob/user)
-		if (user.mind?.assigned_role == "Head of Security")
-			. = "Its your favourite mug! It reads 'Galaxy's Number One HoS!' on the front. You remember when you got it last Spacemas from a secret admirer."
-		else
-			. = "It reads 'Galaxy's Number One HoS!' on the front. You remember finding the receipt for it in disposals when the HoS bought it for themselves last Spacemas."
+		get_desc(var/dist, var/mob/user)
+			if (user.mind?.assigned_role == "Head of Security")
+				. = "Its your favourite mug! It reads 'Galaxy's Number One HoS!' on the front. You remember when you got it last Spacemas from a secret admirer."
+			else
+				. = "It reads 'Galaxy's Number One HoS!' on the front. You remember finding the receipt for it in disposals when the HoS bought it for themselves last Spacemas."
 
-/obj/item/reagent_containers/food/drinks/mug/HoS/blue
-	icon_state = "HoSMugBlue"
-	item_state = "mug"
+	HoS/blue
+		icon_state = "HoSMugBlue"
+		item_state = "mug"
 
-/obj/item/reagent_containers/food/drinks/mug/random_color
-	New()
-		..()
-		src.color = random_saturated_hex_color(1)
+	random_color
+		New()
+			..()
+			src.color = random_saturated_hex_color(1)
 
-/obj/item/reagent_containers/food/drinks/paper_cup
-	name = "paper cup"
-	desc = "A cup made of paper. It's not that complicated."
-	icon_state = "paper_cup"
-	item_state = "drink_glass"
-	initial_volume = 15
-	can_recycle = 0
+	espressocup
+		name = "espresso cup"
+		desc = "A fancy espresso cup, for sipping in the finest establishments." //*tip
+		icon_state = "fancycoffee"
+		item_state = "coffee"
+		initial_volume = 20
+		gulp_size = 2.5
+		g_amt = 2.5 //might be broken still, Whatever
+		var/glass_style = "fancycoffee"
 
-/obj/item/reagent_containers/food/drinks/espressocup
-	name = "espresso cup"
-	desc = "A fancy espresso cup, for sipping in the finest establishments." //*tip
-	icon_state = "fancycoffee"
-	item_state = "coffee"
-	initial_volume = 20
-	gulp_size = 2.5
-	g_amt = 2.5 //might be broken still, Whatever
-	var/glass_style = "fancycoffee"
+		var/image/fluid_image
+		on_reagent_change()
+			src.update_icon()
 
-	var/image/fluid_image
-	on_reagent_change()
-		src.update_icon()
+		proc/update_icon() //updates icon based on fluids inside
+			icon_state = "[glass_style]"
 
-	proc/update_icon() //updates icon based on fluids inside
-		icon_state = "[glass_style]"
+			var/datum/color/average = reagents.get_average_color()
+			if (!src.fluid_image)
+				src.fluid_image = image('icons/obj/foodNdrink/drinks.dmi', "fluid-[glass_style]", -1)
+			src.fluid_image.color = average.to_rgba()
+			src.UpdateOverlays(src.fluid_image, "fluid")
 
-		var/datum/color/average = reagents.get_average_color()
-		if (!src.fluid_image)
-			src.fluid_image = image('icons/obj/foodNdrink/drinks.dmi', "fluid-[glass_style]", -1)
-		src.fluid_image.color = average.to_rgba()
-		src.UpdateOverlays(src.fluid_image, "fluid")
+	paper_cup
+		name = "paper cup"
+		desc = "A cup made of paper. It's not that complicated."
+		icon_state = "paper_cup"
+		item_state = "drink_glass"
+		initial_volume = 15
+		can_recycle = 0
 
+	// paper_cup/insulated //for coffee, make regular cup burn u
+
+//The humble coffee pot
 /obj/item/reagent_containers/food/drinks/carafe
 	name = "coffee carafe"
 	desc = null
@@ -1681,14 +1702,14 @@
 	item_state = "carafe-eng"
 	initial_volume = 100
 	can_chug = 1
-	var/smashed = 0
-	var/shard_amt = 1
+	smashed = 0
+	shard_amt = 2
 	var/image/fluid_image
 
 	on_reagent_change()
 		src.update_icon()
 
-	proc/update_icon() //updates icon based on fluids inside
+	proc/update_icon() //updates icon based on fluids inside //can this be generalized?
 		if (src.reagents && src.reagents.total_volume)
 			var/datum/color/average = reagents.get_average_color()
 			var/average_rgb = average.to_rgba()
@@ -1702,7 +1723,7 @@
 		else
 			src.UpdateOverlays(null, "fluid")
 
-	proc/smash(var/turf/T)
+	proc/smash(var/turf/T) //move to main
 		if (src.smashed)
 			return
 		src.smashed = 1
@@ -1720,48 +1741,56 @@
 			G.set_loc(src.loc)
 		qdel(src)
 
-	throw_impact(atom/A, datum/thrown_thing/thr)
+	throw_impact(atom/A, datum/thrown_thing/thr) //move to main
 		var/turf/T = get_turf(A)
 		..()
 		src.smash(T)
 
-/obj/item/reagent_containers/food/drinks/carafe/attack(mob/M as mob, mob/user as mob)
-	if (user.a_intent == INTENT_HARM)
-		if (M == user)
-			boutput(user, "<span class='alert'><B>You smash the [src] over your own head!</b></span>")
-		else
-			M.visible_message("<span class='alert'><B>[user] smashes [src] over [M]'s head!</B></span>")
-			logTheThing("combat", user, M, "smashes [src] over [constructTarget(M,"combat")]'s head! ")
-		M.TakeDamageAccountArmor("head", force, 0, 0, DAMAGE_BLUNT)
-		M.changeStatus("weakened", 2 SECONDS)
-		playsound(M, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
-		var/obj/O = new /obj/item/raw_material/shard/glass()
-		O.set_loc(get_turf(M))
-		if (src.material)
-			O.setMaterial(src.material)
-		if (src.reagents)
-			src.reagents.reaction(M)
-			qdel(src)
-		else
-			M.visible_message("<span class='alert'>[user] taps [M] over the head with [src].</span>")
-			logTheThing("combat", user, M, "taps [constructTarget(M,"combat")] over the head with [src].")
+	attack(mob/M as mob, mob/user as mob) //move to main
+		if (user.a_intent == INTENT_HARM)
+			if (M == user)
+				boutput(user, "<span class='alert'><B>You smash the [src] over your own head!</b></span>")
+			else
+				M.visible_message("<span class='alert'><B>[user] smashes [src] over [M]'s head!</B></span>")
+				logTheThing("combat", user, M, "smashes [src] over [constructTarget(M,"combat")]'s head! ")
+			M.TakeDamageAccountArmor("head", force, 0, 0, DAMAGE_BLUNT)
+			M.changeStatus("weakened", 2 SECONDS)
+			playsound(M, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
+			var/obj/O = new /obj/item/raw_material/shard/glass()
+			O.set_loc(get_turf(M))
+			if (src.material)
+				O.setMaterial(src.material)
+			if (src.reagents)
+				src.reagents.reaction(M)
+				qdel(src)
+			else
+				M.visible_message("<span class='alert'>[user] taps [M] over the head with [src].</span>")
+				logTheThing("combat", user, M, "taps [constructTarget(M,"combat")] over the head with [src].")
 
-/obj/item/reagent_containers/food/drinks/carafe/medbay
-	icon_state = "carafe-med"
-	item_state = "carafe-med"
+	medbay
+		icon_state = "carafe-med"
+		item_state = "carafe-med"
 
-/obj/item/reagent_containers/food/drinks/carafe/botany
-	icon_state = "carafe-hyd"
-	item_state = "carafe-hyd"
+	botany
+		icon_state = "carafe-hyd"
+		item_state = "carafe-hyd"
 
-/obj/item/reagent_containers/food/drinks/carafe/security
-	icon_state = "carafe-sec"
-	item_state = "carafe-sec"
+	security
+		icon_state = "carafe-sec"
+		item_state = "carafe-sec"
 
-/obj/item/reagent_containers/food/drinks/carafe/research
-	icon_state = "carafe-sci"
-	item_state = "carafe-sci"
+	research
+		icon_state = "carafe-sci"
+		item_state = "carafe-sci"
 
+//misc containers
+
+/obj/item/reagent_containers/food/drinks/skull_chalice
+	name = "skull chalice"
+	desc = "A thing which you can drink fluids out of. Um. It's made from a skull. Considering how many holes are in skulls, this is perhaps a questionable design."
+	icon_state = "skullchalice"
+	item_state = "skullchalice"
+	can_recycle = FALSE
 /obj/item/reagent_containers/food/drinks/coconut
 	name = "Coconut"
 	desc = "Must be migrational."

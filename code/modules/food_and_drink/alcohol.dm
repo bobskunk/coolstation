@@ -54,6 +54,7 @@
 	label = "wine"
 	initial_volume = 50
 	initial_reagents = list("wine"=30)
+	shard_amt = 2
 
 /obj/item/reagent_containers/food/drinks/bottle/hobo_wine
 	name = "fortified wine"
@@ -68,6 +69,7 @@
 	var/safe = 0
 	initial_volume = 50
 	initial_reagents = list("wine"=20,"ethanol"=5)
+	shard_amt = 2
 
 	New()
 		..()
@@ -280,6 +282,7 @@
 	g_amt = 60
 	initial_volume = 120
 	initial_reagents = list("champagne"=20,"wine"=20,"cider"=20,"vodka"=20,"eyeofnewt"=40)
+	shard_amt = 2
 
 /obj/item/reagent_containers/food/drinks/bottle/bojackson
 	name = "Bo Jack Daniel's"
@@ -293,6 +296,7 @@
 	g_amt = 40
 	initial_volume = 60
 	initial_reagents = "bojack"
+	shard_amt = 2
 
 /obj/item/reagent_containers/food/drinks/moonshine
 	name = "jug of moonshine"
@@ -302,6 +306,7 @@
 	rc_flags = RC_FULLNESS
 	initial_volume = 250
 	initial_reagents = "moonshine"
+	shard_amt = 2
 
 /obj/item/reagent_containers/food/drinks/curacao
 	name = "curaçao liqueur"
