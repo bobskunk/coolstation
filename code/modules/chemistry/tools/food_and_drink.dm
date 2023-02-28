@@ -683,6 +683,10 @@
 
 	//TODO: add a drop proc
 
+	throw_impact(atom/A, datum/thrown_thing/thr)
+		..()
+		src.smash(A)
+
 	//turn this thing into glass shards and dump any reagents on turf or thing it is on. smash by indirect action (thrown, exploded)
 	//Accepts: the atom it's smashed "by" (whether by being hit or whatever)
 	proc/smash(var/atom/A)
@@ -958,7 +962,7 @@
 			src.sealed = 0
 			var/obj/item/cap/screwtop/C = new/obj/item/cap/screwtop
 			C.icon_state = "cap-[src.label]"
-			C.pixel_x = -16
+			C.pixel_y = -12
 			C.set_loc(src)
 			user.put_in_hand_or_drop(C)
 			playsound(src.loc, "sound/items/Screwdriver.ogg", 50, 1)
@@ -966,43 +970,61 @@
 			src.update_icon()
 			return 1
 		if (src.cap_type == 4) //champagne
+			if (src.popped) //already done it
+				src.sealed = 0
+				var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
+				C.set_loc(src)
+				user.put_in_hand_or_drop(C)
+				user.visible_message("[user] pulls the cork out of \the [src] again.",\
+					"<span class='notice'>You pull the cork out of \the [src]. It's not as fun as the first time...]</span>")
+				return
 			var/bartender_bonus = 0
 			if (user.mind.assigned_role == "Bartender")
-				bartender_bonus = 5
+				bartender_bonus = 3
 			if (!src.shakes)
 				user.visible_message("[user] shakes up \the [src] a bit!",\
 				"<span class='notice'>You shake up \the [src] a bit to get it ready!</span>")
 				src.shakes++
 				return
-			//if O = a fukken sord???
+			//if O = a fukken knife or sord???
 				//var/swordtries = 1
 				//it succeeds first try?
-					//user.visible_message("[user] slices the cork off of the [src] with the [O] in one go! Goddamn, that was alright.",\
-					"<span class='notice'>You slice the cork off of the [src] with the [O] in one go. Holy shit that felt cool.</span>")
+					//user.visible_message("[user] slices the cork off of the [src] with the [O] [swordtries == 1 ? " in one go! Goddamn, that was alright." : ". What the fuck was that about?"]",\
+					"<span class='notice'>You slice the cork off of the [src] with the [O] in one go. [swordtries == 1 ? " Holy shit that felt cool" : " Still pretty baller."].</span>")
 					//var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
-					//C.throw_at(get_turf(get_steps(user, user.dir, shakes + 5)), rand(2,5), rand(1,4))= user.dir
+					//C.throw_at(get_edge_target_turf(user, user.dir), (src.shakes + bartender_bonus - swordtries), (3 + src.shakes))
 					//src.sealed = 0
 					//src.popped = 1
-					//playsound(src.loc, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
-				//user.visible_message("[user] tries to use [O] to open the [src], but <b>seriously</b> fucks it up.",\
-				"<span class='notice'>You add [W] to the lip of [src]. What the fuck was that about?</span>")
-					//chance to shatter
-					//if (src.swordtries >= rand(2,4)) //steal from shattering proc
+					//playsound(user, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
+				//chance to shatter
+				//if (src.swordtries >= rand(2,4)) //steal from shattering proc
+					//you just fuckin' shatter it. embarrassing. shameful. ugh.
+					//user.visible_message("[user] totally shatters \the [src] with the [O], and it might just be the most embarrassing thing you've witnessed all shift.",\
+					//"<span class='notice'>You absolutely shatter \the [src]. Oh well, at least you had a cool [O] that everyone saw!</span>")
+				//safe
+					//user.visible_message("[user] tries to use [O] to open the [src], but <b>seriously</b> fucks it up.",\
+					"<span class='notice'>You try to open the [src] with your [O] and you slip. Well, better try again...</span>")
+				//cut
+					//user.visible_message("[user] tries to use [O] to open the [src], but <b>seriously</b> fucks it up.",\
+					"<span class='notice'>You try to open the [src] with your [O] and you slip. Well, better try again...</span>")
 			if (src.shakes >= rand(1,5) || bartender_bonus) //succeed at shake on prob or bartender's magic touch
 				//pop it open
 				src.sealed = 0
 				src.popped = 1
 				src.update_icon()
-				playsound(src, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
+				playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
 				//create cork
 				var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
-				C.set_loc(src.loc)
+				C.set_loc(user.loc)
 				//launch it further depending on the shakes
-				C.throw_at(get_turf(get_steps(user, user.dir, shakes + bartender_bonus)), shakes + bartender_bonus, 4 + shakes)
+				C.throw_at(get_edge_target_turf(user, user.dir), (src.shakes + 2 + bartender_bonus), (3 + src.shakes))
 				//user shakes it all up and pops the cork!
 				user.visible_message("[user] shakes up \the [src] some more, then pops the cork! [src.shakes >= 4 ? "Finally..." : "Party time!"]",\
 					"<span class='notice'>You shake up \the [src] some more and pop the cork! [src.shakes >= 4 ? "At least that's over with..." : "Alright!"]</span>")
+				//after making a mess...
+				src.shakes = 0
 			else
+				src.shakes++
 				user.visible_message("[user] tries and fails to pop the cork, then shakes up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]",\
 				"<span class='notice'>You can't pop the cork, so you shake up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]</span>")
 				return
@@ -1117,19 +1139,24 @@
 			if(src.cap_type == 1)
 				var/obj/item/cap/C = new/obj/item/cap
 				C.icon_state = "cap-[src.label]"
-				C.pixel_x = -16
+				C.pixel_y = -12
 				user.visible_message("<span class='notice'>[user] pops the cap off \the [src] with \the [W].</span>", "<span class='notice'>You pop the cap off \the [src] with \the [W].</span>")
+				//playsound(user, "sound/items/coindrop.ogg", 50, 1) //only if dropped
+				//need a sound that works normally
 				src.sealed = 0
 				C.set_loc(src)
 				user.put_in_hand_or_drop(C)
+				src.update_icon()
 				return
 			if(src.cap_type == 2)
 				var/obj/item/cap/cork/C = new/obj/item/cap/cork
 				src.sealed = 0
 				src.popped = 1
 				user.visible_message("<span class='notice'>[user] pops the cork out of \the [src] with \the [W].</span>", "<span class='notice'>You pop the cork out of \the [src] with \the [W].</span>")
+				playsound(src, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
 				C.set_loc(src)
 				user.put_in_hand_or_drop(C)
+				src.update_icon()
 				return
 			if(src.cap_type == 4)
 				boutput(user, "<span class='notice'>You uncultured swine, you don't open a bottle of [src] with a [W]!</span>")
@@ -1147,9 +1174,9 @@
 				src.sealed = 1
 				user.visible_message("<span class='notice'>[user] seals \the [src] back up with \the [W].</span>", "<span class='notice'>You seal \the [src] back up with \the [W].</span>")
 				if (src.cap_type == 3)
-					playsound(src.loc, "sound/items/Screwdriver.ogg", 50, 1)
+					playsound(user, "sound/items/Screwdriver.ogg", 50, 1)
 				if (src.cap_type == 2)
-					playsound(src.loc, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
+					playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
 				src.update_icon()
 				//update icon (wine and champagne get corked but don't get their upper labels back)
 				qdel (W)
@@ -1179,6 +1206,10 @@
 			return
 
 	attack(target as mob, mob/user as mob)
+
+	//harm intent to smash
+	//harm intent ignores seal
+	//broken ignores reagents being out
 		if (src.broken && src.breakable)
 			force = 5.0
 			throwforce = 10.0
@@ -1517,10 +1548,6 @@
 
 	ex_act(severity)
 		src.smash()
-
-	throw_impact(atom/A, datum/thrown_thing/thr)
-		..()
-		src.smash(A)
 
 	smashmess()
 		..()
@@ -2075,6 +2102,7 @@
 	icon_state = "bottlecap-red"
 	var/cap_type = 1
 	w_class = W_CLASS_TINY
+	rand_pos = 1
 
 /obj/item/cap/cork
 	name = "bottlecap"
@@ -2123,6 +2151,16 @@
 				boutput(user, "Your [B] is already cracked open!")
 			else if (B.cap_type == 1)
 				user.visible_message("<b>[user]</b> cracks open a [B] with the [src].", "You crack open a [B] with the [src].")
+				var/obj/item/cap/C = new/obj/item/cap
+				if(B.label)
+					C.icon_state = "cap-[B.label]"
+				C.pixel_y = -12
+				C.set_loc(src.loc) //leave it on the ground
+				//better yet, chance to send flying
+				//also figure out how to fuzz the pixel x and y on creation
+				//or maybe integrate a trash can thing that'll keep count
+				playsound(user, "sound/items/coindrop.ogg", 50, 1) //temporary
+				B.update_icon()
 			else
 				boutput(user, "\The [src] can't open \the [B]!")
 		else

@@ -230,7 +230,7 @@
 	heal_amt = 1
 	g_amt = 40
 	bottle_style = "barf"
-	label = "alcohol5"
+	label = "2010"
 	initial_volume = 50
 	initial_reagents = list("urine"=30)
 
@@ -240,8 +240,9 @@
 	icon_state = "bottle-vodka"
 	bottle_style = "vodka"
 	fluid_style = "vodka"
-	label = "none"
-	cap_type =3
+	label = "vodka"
+	cap_type = 3
+	sealed = 1
 	heal_amt = 1
 	g_amt = 60
 	initial_volume = 50
@@ -260,7 +261,8 @@
 	bottle_style = "tequila"
 	fluid_style = "tequila"
 	label = "tequila"
-	cap_type =3
+	cap_type = 3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -274,7 +276,8 @@
 	bottle_style = "gin"
 	fluid_style = "gin"
 	label = "gin"
-	cap_type =3
+	cap_type = 3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -413,7 +416,7 @@
 	g_amt = 40
 	bottle_style = "vermouthC"
 	label = "label-none"
-	cap_type =3
+	cap_type = 3
 	sealed = 1
 	initial_volume = 50
 
@@ -424,7 +427,7 @@
 	bottle_style = "tvodka"
 	fluid_style = "tvodka"
 	label = "label-none"
-	cap_type =3
+	cap_type = 3
 	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
@@ -438,7 +441,7 @@
 	bottle_style = "gin"
 	fluid_style = "gin"
 	label = "label-none"
-	cap_type =3
+	cap_type = 3
 	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
