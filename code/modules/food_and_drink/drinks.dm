@@ -182,12 +182,14 @@
 	item_state = "contliquid"
 	initial_volume = 50
 	initial_reagents = "water"
+	opentop = 0
 
 /obj/item/reagent_containers/food/drinks/tea
 	name = "tea"
 	desc = "A fine cup of tea.  Possibly Earl Grey.  Temperature undetermined."
 	icon_state = "tea0"
 	item_state = "coffee"
+	opentop = 1
 	initial_volume = 50
 	initial_reagents = "tea"
 
@@ -232,6 +234,7 @@
 	icon_state = "shake"
 	heal_amt = 1
 	rc_flags = RC_FULLNESS
+	opentop = 1
 	initial_volume = 50
 	initial_reagents = list("lipolicide"=30,"chocolate"=5)
 
@@ -241,12 +244,12 @@
 	icon = 'icons/obj/foodNdrink/can.dmi'
 	icon_state = "cola-1"
 	item_state = "cola-1"
+	sealed = 1 //can you drink out of it?
 	heal_amt = 1
 	rc_flags = RC_FULLNESS
 	initial_volume = 50
 	can_chug = 0
 	initial_reagents = list("cola"=20,"VHFCS"=10)
-	var/is_sealed = 1 //can you drink out of it?
 	var/standard_override //is this a random cola or a standard cola (for crushed icons)
 
 	New()
@@ -255,16 +258,16 @@
 			src.icon_state = "cola-2"
 
 	attack(mob/M as mob, mob/user as mob)
-		if (is_sealed)
+		if (sealed)
 			boutput(user, "<span class='alert'>You can't drink out of a sealed can!</span>") //idiot
 			return
 		..()
 
 	attack_self(mob/user as mob)
 		var/drop_this_shit = 0 //i promise this is useful
-		if (src.is_sealed)
+		if (src.sealed)
 			user.visible_message("[user] pops the tab on \the [src]!", "You pop \the [src] open!")
-			is_sealed = 0
+			sealed = 0
 			can_chug = 1
 			playsound(src.loc, "sound/items/can_open.ogg", 50, 1)
 			return
