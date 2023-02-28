@@ -6,8 +6,9 @@
 	item_state = "beer"
 	heal_amt = 1
 	g_amt = 40
-	cap_type =1
+	cap_type = 1
 	//cap_style
+	sealed = 1
 	bottle_style = "brown"
 	label = "alcohol1"
 	initial_volume = 50

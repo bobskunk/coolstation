@@ -594,6 +594,7 @@
 	//compromise: mousedrag to fill, click to spill
 	//remind me (bob) to do this if you see this
 	afterattack(obj/target, mob/user , flag)
+		if (sealed) return
 		user.lastattacked = target
 		if (istype(target, /obj/fluid)) // fluid handling : If src is empty, fill from fluid. otherwise add to the fluid.
 			var/obj/fluid/F = target
@@ -1055,6 +1056,7 @@
 				return
 			if(src.cap_type == 1)
 				user.visible_message("<span class='notice'>[user] pops the cap off \the [src] with \the [W].</span>", "<span class='notice'>You pop the cap off \the [src] with \the [W].</span>")
+				src.sealed = 0
 			if(src.cap_type == 2)
 				src.sealed = 0
 				src.popped = 1
@@ -2023,7 +2025,7 @@
 	name = "corkscrew"
 	desc = "A really helpful bartender's tool! Opens capped bottles and pulls wine corks."
 	icon = 'icons/obj/foodNdrink/bottle.dmi'
-	icon_state = "opener"
+	icon_state = "corkscrew"
 
 	get_desc(var/dist, var/mob/user)
 		if (user.mind?.assigned_role == "Bartender")
@@ -2035,6 +2037,8 @@
 	name = "bottle opener"
 	desc = "One of those permanently mounted bottle openers. Handy for opening capped bottles, plus you'll never lose track of it!"
 	anchored = 1
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "opener"
 
 	attackby(obj/item/W as obj, mob/user as mob) //add clumsiness handling, crack open that cold one in a very literal way
 		if (istype(W, /obj/item/reagent_containers/food/drinks/bottle))
