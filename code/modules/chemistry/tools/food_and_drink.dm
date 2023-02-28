@@ -446,7 +446,7 @@
 	var/broken = 0 //useless, jagged opening or cracked, but it's still mostly intact (stabby bottles)
 	var/leaky = 0 //leaking...
 	var/smashed = 0 //completely destroyed (what's this for?)
-	var/shard_amt = 0 //when busted, make shards
+	var/shard_amt = 1 //when busted, make shards
 	var/sealed = 0 //is this plugged in some way? whether or not it's toggleable
 	var/opentop = 0 //is there a neck like a bottle or a hole like a can that might negate some spillage, or is it just open like a drinking glass?
 	var/integrity = 0 //0 is fine, the higher this number, the higher chance to break or rupture or whatever
@@ -671,6 +671,96 @@
 				can_mousedrop = 1
 			return
 
+	//turn this thing into glass shards and dump any reagents on turf or thing it is on. smash by indirect action (thrown, exploded)
+	//Accepts: the atom it's smashed "by", optionally the severity of the smashing, optionally the doer of the smashing (logs, etc)
+	proc/smash(var/atom/A)
+		//some checks
+		if (src.smashed)
+			return
+		if (!src.smashable)
+			return
+		src.smashed = 1
+		//splash reagents on ground? on object? let's figure this out
+		var/turf/T = get_turf(A)
+		if (!T)
+			T = get_turf(src)
+		if (!T)
+			qdel(src)
+			return
+		//if (src.reagents)
+		//	src.reagents.reaction(A)
+		// visual and audio acts
+		T.visible_message("<span class='alert'>[src] shatters!</span>")
+		playsound(T, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
+		for (var/i=src.shard_amt, i > 0, i--)
+			var/obj/item/raw_material/shard/glass/G = new()
+			G.set_loc(src.loc)
+		qdel(src)
+		//leave a glassy mess if applicable
+		for (var/i=src.shard_amt, i > 0, i--)
+			var/obj/item/raw_material/shard/glass/G = new()
+			G.set_loc(src.loc)
+		if (istype(src),/obj/item/drinkigfglfglss)
+			if (src.in_glass)
+				src.in_glass.set_loc(src.loc)
+				src.in_glass = null
+			if (src.wedge)
+				src.wedge.set_loc(src.loc)
+				src.wedge = null
+		qdel(src)
+
+	//from bottles
+	//
+	proc/smash_on_thing(mob/user as mob, atom/target as turf|obj|mob)
+		if (!user || !target || user.a_intent != "harm" || issilicon(user))
+			return
+		if (!src.breakable && !src.smashable)
+			boutput(user, "[src] bounces uselessly off [target]!")
+			return
+		if (!src.breakable && src.smashable)
+
+		var/turf/U = user.loc
+		var/damage = rand(5,15)
+		var/success_prob = 25
+		var/hurt_prob = 50
+
+		if (user.reagents && user.reagents.has_reagent("ethanol") && user.mind && user.mind.assigned_role == "Bartender")
+			success_prob = 75
+			hurt_prob = 25
+
+		else if (user.mind && user.mind.assigned_role == "Bartender")
+			success_prob = 50
+			hurt_prob = 10
+
+		else if (user.reagents && user.reagents.has_reagent("ethanol"))
+			success_prob = 75
+			hurt_prob = 75
+
+		//have to do all this stuff anyway, so do it now
+		playsound(U, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
+		var/obj/item/raw_material/shard/glass/G = new()
+		G.set_loc(U)
+
+		if (src.reagents)
+			src.reagents.reaction(U)
+
+		DEBUG_MESSAGE("[src].smash_on_thing([user], [target]): success_prob [success_prob], hurt_prob [hurt_prob]")
+		if (!src.broken && prob(success_prob))
+			user.visible_message("<span class='alert'><b>[user] smashes [src] on [target], shattering it open![prob(50) ? " [user] looks like they're ready for a fight!" : " [src] has one mean edge on it!"]</span>")
+			src.item_state = "broken_beer" // shattered beer inhand sprite
+			user.update_inhands()
+			src.broken = 1
+			src.update_icon() // handles reagent holder stuff
+
+		else
+			user.visible_message("<span class='alert'><b>[user] smashes [src] on [target]! \The [src] shatters completely!</span>")
+			if (prob(hurt_prob))
+				user.visible_message("<span class='alert'>The broken shards of [src] slice up [user]'s hand!</span>")
+				playsound(U, "sound/impact_sounds/Slimy_Splat_1.ogg", 50, 1)
+				random_brute_damage(user, damage)
+				take_bleeding_damage(user, user, damage)
+			SPAWN_DBG(0)
+				qdel(src)
 
 	/*
 	afterattack(obj/target, mob/user , flag)
@@ -960,57 +1050,6 @@
 				take_bleeding_damage(target, null, damage)
 		..()
 
-	proc/smash_on_thing(mob/user as mob, atom/target as turf|obj|mob) // why did I have this as a proc on tables?  jeez, babbycoder haine, you really didn't know shit about nothin
-		if (!user || !target || user.a_intent != "harm" || issilicon(user))
-			return
-
-		if (!src.breakable)
-			boutput(user, "[src] bounces uselessly off [target]!")
-			return
-
-		var/turf/U = user.loc
-		var/damage = rand(5,15)
-		var/success_prob = 25
-		var/hurt_prob = 50
-
-		if (user.reagents && user.reagents.has_reagent("ethanol") && user.mind && user.mind.assigned_role == "Bartender")
-			success_prob = 75
-			hurt_prob = 25
-
-		else if (user.mind && user.mind.assigned_role == "Bartender")
-			success_prob = 50
-			hurt_prob = 10
-
-		else if (user.reagents && user.reagents.has_reagent("ethanol"))
-			success_prob = 75
-			hurt_prob = 75
-
-		//have to do all this stuff anyway, so do it now
-		playsound(U, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
-		var/obj/item/raw_material/shard/glass/G = new()
-		G.set_loc(U)
-
-		if (src.reagents)
-			src.reagents.reaction(U)
-
-		DEBUG_MESSAGE("[src].smash_on_thing([user], [target]): success_prob [success_prob], hurt_prob [hurt_prob]")
-		if (!src.broken && prob(success_prob))
-			user.visible_message("<span class='alert'><b>[user] smashes [src] on [target], shattering it open![prob(50) ? " [user] looks like they're ready for a fight!" : " [src] has one mean edge on it!"]</span>")
-			src.item_state = "broken_beer" // shattered beer inhand sprite
-			user.update_inhands()
-			src.broken = 1
-			src.update_icon() // handles reagent holder stuff
-
-		else
-			user.visible_message("<span class='alert'><b>[user] smashes [src] on [target]! \The [src] shatters completely!</span>")
-			if (prob(hurt_prob))
-				user.visible_message("<span class='alert'>The broken shards of [src] slice up [user]'s hand!</span>")
-				playsound(U, "sound/impact_sounds/Slimy_Splat_1.ogg", 50, 1)
-				random_brute_damage(user, damage)
-				take_bleeding_damage(user, user, damage)
-			SPAWN_DBG(0)
-				qdel(src)
-
 /obj/item/reagent_containers/food/drinks/bottle/soda //for soda bottles and bottles from the glass recycler specifically
 	fluid_underlay_shows_volume = TRUE
 
@@ -1033,8 +1072,7 @@
 	var/obj/item/cocktail_stuff/drink_umbrella/umbrella = null
 	var/obj/item/cocktail_stuff/in_glass = null
 	initial_volume = 50
-	smashed = 0
-	shard_amt = 1
+	smashable = 1
 
 	var/image/fluid_image
 	var/image/image_ice
@@ -1307,37 +1345,6 @@
 
 	ex_act(severity)
 		src.smash()
-
-	//turn this thing into glass shards and dump any reagents on turf or thing it is smashing on, by indirect action (thrown, exploded)
-	//Accepts: the atom it's smashing against, optionally the severity of the smashing, optionally the doer of the smashing (logs, etc)
-	proc/smash(var/atom/A)
-		if (src.smashed)
-			return
-		if (!src.smashable)
-			return
-		src.smashed = 1
-
-		var/turf/T = get_turf(A)
-		if (!T)
-			T = get_turf(src)
-		if (!T)
-			qdel(src)
-			return
-		if (src.reagents) // haine fix for cannot execute null.reaction()
-			src.reagents.reaction(A)
-
-		T.visible_message("<span class='alert'>[src] shatters!</span>")
-		playsound(T, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
-		for (var/i=src.shard_amt, i > 0, i--)
-			var/obj/item/raw_material/shard/glass/G = new()
-			G.set_loc(src.loc)
-		if (src.in_glass)
-			src.in_glass.set_loc(src.loc)
-			src.in_glass = null
-		if (src.wedge)
-			src.wedge.set_loc(src.loc)
-			src.wedge = null
-		qdel(src)
 
 	throw_impact(atom/A, datum/thrown_thing/thr)
 		..()
@@ -1750,24 +1757,6 @@
 		else
 			src.UpdateOverlays(null, "fluid")
 
-	proc/smash(var/turf/T) //move to main
-		if (src.smashed)
-			return
-		src.smashed = 1
-		if (!T)
-			T = get_turf(src)
-		if (!T)
-			qdel(src)
-			return
-		if (src.reagents) // haine fix for cannot execute null.reaction()
-			src.reagents.reaction(T)
-		T.visible_message("<span class='alert'>[src] shatters!</span>")
-		playsound(T, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
-		for (var/i=src.shard_amt, i > 0, i--)
-			var/obj/item/raw_material/shard/glass/G = new()
-			G.set_loc(src.loc)
-		qdel(src)
-
 	throw_impact(atom/A, datum/thrown_thing/thr) //move to main
 		var/turf/T = get_turf(A)
 		..()
@@ -1892,6 +1881,7 @@
 	icon = 'icons/obj/foodNdrink/bottle.dmi'
 	icon_state = "bottlecap-red"
 	var/cap = 1
+	w_class = W_CLASS_TINY
 
 /obj/item/cap/cork
 	name = "bottlecap"
