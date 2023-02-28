@@ -437,18 +437,19 @@
 	rc_flags = RC_FULLNESS | RC_VISIBLE | RC_SPECTRO
 	var/gulp_size = 5 //This is now officially broken ... need to think of a nice way to fix it.
 	var/splash_all_contents = 1
-	doants = 0
+	doants = 0 //no ants until updated
 	throw_speed = 1
 	var/can_recycle = 1
 	var/can_chug = 1
 	var/breakable = 0 //can it be broken in part?
-	var/smashable = 0 //can it be totally destroyed
-	var/broken = 0 //useless, jagged opening or crack, but it's still mostly intact (stabby bottles)
-	var/smashed = 0 //completely destroyed
+	var/smashable = 0 //can it be totally destroyed?
+	var/broken = 0 //useless, jagged opening or cracked, but it's still mostly intact (stabby bottles)
+	var/leaky = 0 //leaking...
+	var/smashed = 0 //completely destroyed (what's this for?)
 	var/shard_amt = 0 //when busted, make shards
 	var/sealed = 0 //is this plugged in some way? whether or not it's toggleable
 	var/opentop = 0 //is there a neck like a bottle or a hole like a can that might negate some spillage, or is it just open like a drinking glass?
-	var/integrity = 0 //0 is fine, the higher this number, the higher chance to break
+	var/integrity = 0 //0 is fine, the higher this number, the higher chance to break or rupture or whatever
 
 	New()
 		..()
@@ -461,15 +462,21 @@
 
 	on_reagent_change()
 		update_gulp_size()
+		if sealed
+			return
 		doants = src.reagents && src.reagents.total_volume > 0
+		return
 
 	on_spin_emote(var/mob/living/carbon/human/user as mob)
 		. = ..()
 		if (src.reagents && src.reagents.total_volume > 0)
+			if (src.sealed = 1)
+				return //it's fine
 			user.visible_message("<span class='alert'><b>[user] spills the contents of [src] all over [him_or_her(user)]self!</b></span>")
 			logTheThing("combat", user, null, "spills the contents of [src] [log_reagents(src)] all over [him_or_her(user)]self at [log_loc(user)].")
 			src.reagents.reaction(get_turf(user), TOUCH)
 			src.reagents.clear_reagents()
+		return
 
 	MouseDrop(atom/over_object)
 		..()
@@ -504,6 +511,8 @@
 
 	//Wow, we copy+pasted the heck out of this... (Source is chemistry-tools dm)
 	attack_self(mob/user as mob)
+		if (src.sealed)
+			src.unseal()
 		if (src.splash_all_contents)
 			boutput(user, "<span class='notice'>You tighten your grip on the [src].</span>")
 			src.splash_all_contents = 0
@@ -514,6 +523,8 @@
 
 	attack(mob/M as mob, mob/user as mob, def_zone)
 		// in this case m is the consumer and user is the one holding it
+		if (src.sealed)
+			src.unseal()
 		if (istype(src, /obj/item/reagent_containers/food/drinks/bottle/soda))
 			var/obj/item/reagent_containers/food/drinks/bottle/W = src
 			if (W.broken)
@@ -793,6 +804,7 @@
 	var/ice = null
 	breakable = 1
 	smashable = 1
+	cap = 0 //0 = no cap, 1 = bottlecap, 2 = cork, 3 = screwtop, 4 = champagne cork
 	var/bottle_style = "clear"
 	var/fluid_style = "bottle"
 	var/alt_filled_state = null // does our icon state gain a 1 if we've got fluid? put that 1 in this here var if so!
@@ -895,6 +907,21 @@
 
 			src.name = t
 			src.labeled = 1
+		else if (istype(W, /obj/item/cap)
+			if(W.cap == 1) //bottlecaps don't go back on
+				user.visible_message("<span class='notice'>Try as you might, the cap won't go back on \the [src].</span>")
+				return
+			if(src.cap == W.cap) //cap matches
+				src.sealed = 1
+				user.visible_message("<span class='notice'>[user] seals \the [src] back up with \the [W].</span>", "<span class='notice'>You seal \the [src] back up with \the [W].</span>")
+				qdel (W)
+				return
+			if((src.cap = 4 && W.cap = 2) || (src.cap = 2 && W.cap = 4)) // cork confusion
+				user.visible_message("<span class='notice'>This is the wrong kind of cork. Ugh!</span>")
+				return
+			else //wrong type
+				user.visible_message("<span class='notice'>\The [W] doesn't fit in \the [src].</span>")
+				return
 		else
 			..()
 			return
@@ -1834,6 +1861,7 @@
 	initial_volume = 120
 	can_recycle = 0
 	can_chug = 0
+	sealed = 1
 
 	New()
 		..()
@@ -1857,3 +1885,31 @@
 	name = "golden cocktail shaker"
 	desc = "A golden plated tumbler with a top, used to mix cocktails. Can hold up to 120 units. So rich! So opulent! So... tacky."
 	icon_state = "golden_cocktailshaker"
+
+/obj/item/cap
+	name = "bottlecap"
+	desc = "A small metal lid for a bottled refreshment. Needs to be pried off, and won't go back on."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "bottlecap-red"
+	var/cap = 1
+
+/obj/item/cap/cork
+	name = "bottlecap"
+	desc = "A small cork for a wine bottle."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "cork"
+	var/cap = 2
+
+/obj/item/cap/screwtop
+	name = "bottlecap"
+	desc = "A distinctive cork for a champagne bottle."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "screwtop"
+	var/cap = 3
+
+/obj/item/cap/champcork
+	name = "champagne cork"
+	desc = "A distinctive cork for a champagne bottle."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "champcork"
+	var/cap = 4
