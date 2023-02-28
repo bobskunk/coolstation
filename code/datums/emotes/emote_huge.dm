@@ -430,7 +430,7 @@ So if shit breaks, that's why. I excised about 2k lines into all these emote dat
 /datum/emote/flip
 	cooldown = 5 SECONDS
 /datum/emote/flip/enact(mob/living/carbon/human/user, voluntary = 0, param)
-	if (!istype(user)) //sounds restrict this to living, on_chair to human
+	if (!istype(user)) //sounds restrict this to living, standing_on to human
 		return
 	var/message = null
 	var/list/combatflipped = list()
@@ -467,7 +467,7 @@ So if shit breaks, that's why. I excised about 2k lines into all these emote dat
 		var/datum/targetable/D = user.targeting_ability
 		D.flip_callback()
 
-	if ((!istype(user.loc, /turf/space)) && (!user.on_chair))
+	if ((!istype(user.loc, /turf/space)) && (!user.standing_on))
 		if (!user.lying)
 			if ((user.restrained()) || (user.reagents && user.reagents.get_reagent_amount("ethanol") > 30) || (user.bioHolder.HasEffect("clumsy")))
 				message = pick("<B>[user]</B> tries to flip, but stumbles!", "<B>[user]</B> slips!")

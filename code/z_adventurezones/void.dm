@@ -195,12 +195,12 @@ CONTENTS:
 			UpdateOverlays(overlays_list["lscreen[operating]"], "lscreen")
 			UpdateOverlays(overlays_list["rscreen[operating]"], "rscreen")
 
-			if(chair1?.buckled_guy)
+			if(chair1?.occupant)
 				UpdateOverlays(overlays_list["l_dial_[operating]"], "l_dial")
 			else
 				UpdateOverlays(overlays_list["l_dial_idle"], "l_dial")
 
-			if(chair2?.buckled_guy)
+			if(chair2?.occupant)
 				UpdateOverlays(overlays_list["r_dial_[operating]"], "r_dial")
 			else
 				UpdateOverlays(overlays_list["r_dial_idle"], "r_dial")
@@ -236,8 +236,8 @@ CONTENTS:
 					<A HREF='?src=\ref[src];refresh_chair_connection=1'>Re-establish</A>
 					<h3>Mental Interfaces</h3>
 					<table border=1><tr>
-						<th>Interface #1<td><B>[chair1?.buckled_guy ? "<font color=green>Connected</font>" : "<font color=red>Disconnected</font>"]</B><tr>
-						<th>Interface #2<td><B>[chair2?.buckled_guy ? "<font color=green>Connected</font>" : "<font color=red>Disconnected</font>"]</B><tr>
+						<th>Interface #1<td><B>[chair1?.occupant ? "<font color=green>Connected</font>" : "<font color=red>Disconnected</font>"]</B><tr>
+						<th>Interface #2<td><B>[chair2?.occupant ? "<font color=green>Connected</font>" : "<font color=red>Disconnected</font>"]</B><tr>
 					</table>
 					<A HREF='?src=\ref[src];refresh_mind_connection=1'>Re-establish</A><BR><BR>
 					<A HREF='?src=\ref[src];execute_swap=1'><B><font bold=5 size=7>Activate</font></B></A></span>"}
@@ -372,7 +372,7 @@ CONTENTS:
 		update_icons()
 
 	proc/can_operate()
-		return chair1 && ishuman(chair1.buckled_guy) && !chair1.buckled_guy:on_chair && chair2 && ishuman(chair2.buckled_guy) && !chair2.buckled_guy:on_chair
+		return chair1 && ishuman(chair1.occupant) && !chair1.occupant:standing_on && chair2 && ishuman(chair2.occupant) && !chair2.occupant:standing_on
 
 	proc/do_swap()
 
@@ -391,8 +391,8 @@ CONTENTS:
 				chair1.allow_unbuckle = 0
 				chair2.allow_unbuckle = 0
 
-				var/mob/living/carbon/human/A = chair1.buckled_guy
-				var/mob/living/carbon/human/B = chair2.buckled_guy
+				var/mob/living/carbon/human/A = chair1.occupant
+				var/mob/living/carbon/human/B = chair2.occupant
 
 				if(istype(A, /mob/living/carbon/human/future))
 					A:death_countdown = 20 //Don't die on us mid-process

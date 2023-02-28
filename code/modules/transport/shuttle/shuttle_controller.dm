@@ -231,8 +231,8 @@ datum/shuttle_controller
 								var/obj/stool/O = A
 								if( !O.anchored )
 									var/atom/target = get_edge_target_turf(O, pick(alldirs))
-									if( O.buckled_guy )
-										boutput( O.buckled_guy, "<span class='alert'>The [O] shoots off due to being unsecured!</span>" )
+									if( O.occupant )
+										boutput( O.occupant, "<span class='alert'>The [O] shoots off due to being unsecured!</span>" )
 										O.unbuckle()
 									if( target )
 										O.throw_at( target, 25, 1 )//dear god I am sorry in advance for doing this
@@ -247,7 +247,7 @@ datum/shuttle_controller
 									var/bonus_stun = 0
 									if (ishuman(M))
 										var/mob/living/carbon/human/H = M
-										bonus_stun = (H?.buckled && H.on_chair)
+										bonus_stun = (H.standing_on)
 										//DEBUG_MESSAGE("[M] is human and bonus_stun is [bonus_stun]")
 									if (!M.buckled || bonus_stun)
 										M.changeStatus("stunned", 2 SECONDS)
