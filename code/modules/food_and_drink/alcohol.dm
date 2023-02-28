@@ -7,7 +7,6 @@
 	heal_amt = 1
 	g_amt = 40
 	cap_type = 1
-	//cap_style
 	sealed = 1
 	bottle_style = "brown"
 	label = "alcohol1"
@@ -25,7 +24,8 @@
 	icon_state = "bottle-green"
 	initial_volume = 50
 	initial_reagents = list("beer"=25,"ethanol"=5)
-	cap_type =1
+	cap_type = 1
+	sealed = 1
 
 	New()
 		..()
@@ -56,7 +56,8 @@
 	icon_state = "bottle-wine"
 	heal_amt = 1
 	g_amt = 40
-	cap_type =2
+	cap_type = 2
+	sealed = 1
 	bottle_style = "wine"
 	label = "wine"
 	initial_volume = 50
@@ -69,7 +70,8 @@
 	icon_state = "bottle-vermouth"
 	heal_amt = 1
 	g_amt = 40
-	cap_type =3
+	cap_type = 3
+	sealed = 1
 	bottle_style = "vermouth"
 	fluid_style = "vermouth"
 	label = "vermouth"
@@ -116,6 +118,7 @@
 	label = "champagne"
 	cap_type =4
 	alt_filled_state = 1
+	sealed = 1
 	heal_amt = 1
 	g_amt = 60
 	initial_volume = 50
@@ -155,7 +158,8 @@
 		bottle_style = "champagne"
 		fluid_style = "champagne"
 		label = "champagne"
-		cap_type =4
+		cap_type = 4
+		sealed = 1
 		alt_filled_state = 1
 		heal_amt = 1
 		g_amt = 60
@@ -221,7 +225,8 @@
 	name = "2010 Vintage"
 	desc = "A bottle marked '2010 Vintage'. ...wait, this isn't wine..."
 	icon_state = "bottle-barf"
-	cap_type =2
+	cap_type = 2
+	sealed = 1
 	heal_amt = 1
 	g_amt = 40
 	bottle_style = "barf"
@@ -283,7 +288,8 @@
 	bottle_style = "vermouth"
 	fluid_style = "vermouth"
 	label = "vermouth"
-	cap_type =3
+	cap_type = 3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -297,7 +303,8 @@
 	bottle_style = "whiskey"
 	fluid_style = "whiskey"
 	label = "whiskey"
-	cap_type =3
+	cap_type = 3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -407,6 +414,7 @@
 	bottle_style = "vermouthC"
 	label = "label-none"
 	cap_type =3
+	sealed = 1
 	initial_volume = 50
 
 /obj/item/reagent_containers/food/drinks/bottle/empty/tall
@@ -417,6 +425,7 @@
 	fluid_style = "tvodka"
 	label = "label-none"
 	cap_type =3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -430,6 +439,7 @@
 	fluid_style = "gin"
 	label = "label-none"
 	cap_type =3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -442,7 +452,8 @@
 	bottle_style = "spicedrum"
 	fluid_style = "spicedrum"
 	label = "label-none"
-	cap_type =3
+	cap_type = 3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60
@@ -456,6 +467,7 @@
 	fluid_style = "tequila"
 	label = "label-none"
 	cap_type =3
+	sealed = 1
 	alt_filled_state = 1
 	heal_amt = 1
 	g_amt = 60

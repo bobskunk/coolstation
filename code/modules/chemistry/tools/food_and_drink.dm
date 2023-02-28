@@ -455,7 +455,7 @@
 	var/sealed = 0 //is this plugged in some way? whether or not it's toggleable
 	var/opentop = 1 //is there a neck like a bottle or a hole like a can that might negate some spillage, or is it just open like a drinking glass?
 	var/insulated = 0 //is this gonna hurt when you pick it up and it's full of hot (no effect atm)
-	//var/shakes = 0 //soda cans and bottles can get shaken. might have use for shaker, too...
+	var/shakes = 0 //soda cans and bottles can get shaken. might have use for shaker, too...
 	//var/leaky = 0 //leaking reagents...
 
 	New()
@@ -536,7 +536,9 @@
 		if (!src.reagents || !src.reagents.total_volume)
 			boutput(user, "<span class='alert'>Nothing left in [src], oh no!</span>")
 			return 0
-
+		if (src.sealed)
+			user.show_text("This thing isn't even open!", "red")
+			return 0
 		else
 			//drink and forced drink
 			if (iscarbon(M) || ismobcritter(M))
@@ -945,7 +947,8 @@
 		src.update_icon()
 
 	//attempt to open beverage without any objects
-	proc/unseal()
+	//but, secret arg for fancy dipshits w/ sords
+	proc/unseal(var/mob/user as mob,var/obj/O as obj)
 		if (!src.cap_type)
 			//there's no cap here! let's just keep going
 			src.sealed = 0
@@ -954,14 +957,59 @@
 		if (src.cap_type == 3) //screwoff
 			src.sealed = 0
 			var/obj/item/cap/screwtop/C = new/obj/item/cap/screwtop
-			C.set_loc(src.loc)
-			//try to put it in hand otherwise dump on ground
-			//play sound
+			C.icon_state = "cap-[src.label]"
+			C.pixel_x = -16
+			C.set_loc(src)
+			user.put_in_hand_or_drop(C)
+			playsound(src.loc, "sound/items/Screwdriver.ogg", 50, 1)
 			src.sealed = 0
 			src.update_icon()
 			return 1
+		if (src.cap_type == 4) //champagne
+			var/bartender_bonus = 0
+			if (user.mind.assigned_role == "Bartender")
+				bartender_bonus = 5
+			if (!src.shakes)
+				user.visible_message("[user] shakes up \the [src] a bit!",\
+				"<span class='notice'>You shake up \the [src] a bit to get it ready!</span>")
+				src.shakes++
+				return
+			//if O = a fukken sord???
+				//var/swordtries = 1
+				//it succeeds first try?
+					//user.visible_message("[user] slices the cork off of the [src] with the [O] in one go! Goddamn, that was alright.",\
+					"<span class='notice'>You slice the cork off of the [src] with the [O] in one go. Holy shit that felt cool.</span>")
+					//var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
+					//C.throw_at(get_turf(get_steps(user, user.dir, shakes + 5)), rand(2,5), rand(1,4))= user.dir
+					//src.sealed = 0
+					//src.popped = 1
+					//playsound(src.loc, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
+				//user.visible_message("[user] tries to use [O] to open the [src], but <b>seriously</b> fucks it up.",\
+				"<span class='notice'>You add [W] to the lip of [src]. What the fuck was that about?</span>")
+					//chance to shatter
+					//if (src.swordtries >= rand(2,4)) //steal from shattering proc
+			if (src.shakes >= rand(1,5) || bartender_bonus) //succeed at shake on prob or bartender's magic touch
+				//pop it open
+				src.sealed = 0
+				src.popped = 1
+				src.update_icon()
+				playsound(src, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
+				//create cork
+				var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
+				C.set_loc(src.loc)
+				//launch it further depending on the shakes
+				C.throw_at(get_turf(get_steps(user, user.dir, shakes + bartender_bonus)), shakes + bartender_bonus, 4 + shakes)
+				//user shakes it all up and pops the cork!
+				user.visible_message("[user] shakes up \the [src] some more, then pops the cork! [src.shakes >= 4 ? "Finally..." : "Party time!"]",\
+					"<span class='notice'>You shake up \the [src] some more and pop the cork! [src.shakes >= 4 ? "At least that's over with..." : "Alright!"]</span>")
+			else
+				user.visible_message("[user] tries and fails to pop the cork, then shakes up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]",\
+				"<span class='notice'>You can't pop the cork, so you shake up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]</span>")
+				return
+				//
+			//todo: make a bigger mess with the more shakes there are
 		else
-			//you struggle for a bit but can't get this thing open!
+			boutput(user, "<span class='alert'>Dang, you just can't seem to get \the [src] to open!</span>")
 			return 0
 
 	on_reagent_change()
@@ -998,6 +1046,7 @@
 			src.reagents.total_volume = 0
 			src.reagents.maximum_volume = 0
 			src.icon_state = "broken-[src.bottle_style]"
+			//simple, no reagents, no cap
 			if (src.label)
 				ENSURE_IMAGE(src.image_label, src.icon, "label-broken-[src.label]")
 				//if (!src.image_label)
@@ -1007,6 +1056,7 @@
 			else
 				src.UpdateOverlays(null, "label")
 		else
+			//reagent level/color
 			if (!src.reagents || src.reagents.total_volume <= 0) //Fix for cannot read null/volume. Also FUCK YOU REAGENT CREATING FUCKBUG!
 				src.icon_state = "bottle-[src.bottle_style]"
 			else if(!src.fluid_underlay_shows_volume)
@@ -1028,20 +1078,30 @@
 					var/datum/color/average = reagents.get_average_color()
 					src.image_fluid.color = average.to_rgba()
 					src.underlays += src.image_fluid
+			//label
 			if (src.label)
 				ENSURE_IMAGE(src.image_label, src.icon, "label-[src.label]")
 				//if (!src.image_label)
 					//src.image_label = image('icons/obj/foodNdrink/bottle.dmi')
 				//src.image_label.icon_state = "label-[src.label]"
 				src.UpdateOverlays(src.image_label, "label")
-			if (src.cap_type) //this thing has a cap?
-				if (src.sealed) //check if currently sealed
-					if (src.popped) //check if wine ever opened
-						ENSURE_IMAGE(src.image_cap, src.icon, "cap-[src.label]")
-				src.UpdateOverlays(src.image_label, "cap")
-
 			else
 				src.UpdateOverlays(null, "label")
+			//caps and corks
+			if (src.cap_type) //does this thing have a cap?
+				if (src.sealed) //is it sealed?
+					if (!src.popped) //is it unpopped?
+						ENSURE_IMAGE(src.image_cap, src.icon, "cap-[src.label]") //easy peasy, everyone gets standard cap
+						src.UpdateOverlays(src.image_cap, "cap")
+					else //popping only happens to wine and champagne, so,
+						ENSURE_IMAGE(src.image_cap, src.icon, "cork-[src.label]") //hastily recorked, unglamorous
+						src.UpdateOverlays(src.image_cap, "cap")
+				else
+					if (src.popped)
+						ENSURE_IMAGE(src.image_cap, src.icon, "open-[src.label]") //open champagne/wine
+						src.UpdateOverlays(src.image_cap, "cap")
+					else
+						src.UpdateOverlays(null, "cap") //no cap at all
 			// Ice is implemented below; we just need sprites from whichever poor schmuck that'll be willing to do all that ridiculous sprite work
 			if (src.reagents.has_reagent("ice"))
 				ENSURE_IMAGE(src.image_ice, src.icon, "ice-[src.fluid_style]")
@@ -1055,12 +1115,22 @@
 				boutput(user, "<span class='notice'>Your [src] is already open!</span>")
 				return
 			if(src.cap_type == 1)
+				var/obj/item/cap/C = new/obj/item/cap
+				C.icon_state = "cap-[src.label]"
+				C.pixel_x = -16
 				user.visible_message("<span class='notice'>[user] pops the cap off \the [src] with \the [W].</span>", "<span class='notice'>You pop the cap off \the [src] with \the [W].</span>")
 				src.sealed = 0
+				C.set_loc(src)
+				user.put_in_hand_or_drop(C)
+				return
 			if(src.cap_type == 2)
+				var/obj/item/cap/cork/C = new/obj/item/cap/cork
 				src.sealed = 0
 				src.popped = 1
 				user.visible_message("<span class='notice'>[user] pops the cork out of \the [src] with \the [W].</span>", "<span class='notice'>You pop the cork out of \the [src] with \the [W].</span>")
+				C.set_loc(src)
+				user.put_in_hand_or_drop(C)
+				return
 			if(src.cap_type == 4)
 				boutput(user, "<span class='notice'>You uncultured swine, you don't open a bottle of [src] with a [W]!</span>")
 				return
@@ -1076,6 +1146,11 @@
 			if(src.cap_type == C.cap_type) //cap matches
 				src.sealed = 1
 				user.visible_message("<span class='notice'>[user] seals \the [src] back up with \the [W].</span>", "<span class='notice'>You seal \the [src] back up with \the [W].</span>")
+				if (src.cap_type == 3)
+					playsound(src.loc, "sound/items/Screwdriver.ogg", 50, 1)
+				if (src.cap_type == 2)
+					playsound(src.loc, "sound/impact_sounds/Wood_Hit_Small_1", 50, 1)
+				src.update_icon()
 				//update icon (wine and champagne get corked but don't get their upper labels back)
 				qdel (W)
 				return
@@ -1139,7 +1214,8 @@
 
 	attack_self(mob/user as mob)
 		if (src.sealed)
-			src.unseal()
+			src.unseal(user)
+			return
 		..()
 
 /obj/item/reagent_containers/food/drinks/bottle/soda //for soda bottles and bottles from the glass recycler specifically
