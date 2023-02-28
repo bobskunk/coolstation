@@ -34,8 +34,8 @@
 	//	return
 
 /datum/targetable/chairflip
-	name = "Chair Flip"
-	desc = "Click to launch yourself off of a chair."
+	name = "Flying Tackle"
+	desc = "Click to launch yourself off of a thing you're standing on."
 	//icon_state = "fireball"
 	targeted = 1
 	target_anything = 1
@@ -83,7 +83,7 @@
 			var/obj/stool/chair/C = M.buckled
 			M.buckled.unbuckle()
 			C.buckledIn = 0
-			C.buckled_guy = null
+			C.occupantw = null
 		M.pixel_y = 0
 		M.buckled = null
 		reset_anchored(M)
@@ -93,7 +93,7 @@
 
 		if (ishuman(M))
 			var/mob/living/carbon/human/H = M
-			H.on_chair = 0
+			H.standing_on = null
 
 		playsound(M.loc, "sound/effects/flip.ogg", 50, 1)
 		M.throw_at(target, 10, 1, throw_type = THROW_CHAIRFLIP)

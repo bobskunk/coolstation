@@ -91,8 +91,8 @@
 	src.unkillable = 0 //Get owned, nerd!
 
 	var/list/suicides = list("hold your breath")
-	if (src.on_chair)
-		suicides += src.on_chair
+	if (src.standing_on)
+		suicides += src.standing_on
 
 	if (src.wear_mask && src.wear_mask.custom_suicide && !istype(src.wear_mask,/obj/item/clothing/mask/cursedclown_hat)) //can't stare into the cluwne mask's eyes while wearing it...
 		suicides += src.wear_mask
@@ -132,15 +132,15 @@
 
 		src.unlock_medal("Damned", 1) //You don't get the medal if you tried to wuss out!
 
-		if (!isnull(src.on_chair) && selection == src.on_chair)
-			src.visible_message("<span class='alert'><b>[src] jumps off of the chair straight onto [his_or_her(src)] head!</b></span>")
+		if (!isnull(src.standing_on) && selection == src.standing_on)
+			src.visible_message("<span class='alert'><b>[src] jumps off of \the [src.standing_on] straight onto [his_or_her(src)] head!</b></span>")
 			src.TakeDamage("head", 200, 0)
 			SPAWN_DBG(50 SECONDS)
 				if (src && !isdead(src))
 					src.suiciding = 0
 			src.pixel_y = 0
 			reset_anchored(src)
-			src.on_chair = 0
+			src.standing_on = null
 			src.buckled = null
 			return
 		else if (istype(selection))
