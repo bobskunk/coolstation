@@ -450,9 +450,10 @@
 	var/weakness = 0 //0 is fine, the higher this number, the higher chance to break or rupture or whatever
 	var/shard_amt = 1 //when busted, make shards
 	//containing
+	var/cap_type = 0 //0 = no cap, 1 = bottlecap, 2 = cork, 3 = screwtop, 4 = champagne cork, 5 = pulltab, 6 = punchtab, 7 = bartender pour spout
 	var/insulated = 0 //is this gonna hurt when you pick it up and it's full of hot (no effect atm)
 	var/shakes = 0 //soda cans and bottles can get shaken. might have use for shaker, too... (wanky showoff bartenders)
-	//var/leaky = 0 //leaking reagents...
+	//var/leaky = 0 //a crack or hole, leaking reagents...
 
 	New()
 		..()
@@ -465,7 +466,7 @@
 
 	on_reagent_change()
 		update_gulp_size()
-		if (src.is_open_container())
+		if (!src.is_open_container())
 			return
 		doants = src.reagents && src.reagents.total_volume > 0
 		return
@@ -473,7 +474,7 @@
 	on_spin_emote(var/mob/living/carbon/human/user as mob)
 		. = ..()
 		if (src.reagents && src.reagents.total_volume > 0)
-			if (!src.is_open_container())
+			if (src.is_open_container())
 				user.visible_message("<span class='alert'><b>[user] spills the contents of [src] all over [him_or_her(user)]self!</b></span>")
 				logTheThing("combat", user, null, "spills the contents of [src] [log_reagents(src)] all over [him_or_her(user)]self at [log_loc(user)].")
 				src.reagents.reaction(get_turf(user), TOUCH)
@@ -600,7 +601,9 @@
 	//clicking transfers to, dragging fills from
 	afterattack(obj/target, mob/user, flag)
 		if (!src.is_open_container())
-			return
+			//if (src.unseal() != 2) //as a courtesy, sometimes things might not be open when they should be
+			boutput(user, "<span class='notice'>You need to check to see if [src] is even open. If this is not an openable drink container, yell at a coder (specifically bob).</span>")
+			return //otherwise, done
 		//if cap, try to seal back up and not do anything
 		user.lastattacked = target
 		if (istype(target, /obj/fluid)) // fluid handling : If src is empty, fill from fluid. otherwise add to the fluid.
@@ -672,7 +675,7 @@
 		..()
 		//try spilling shit maybe?
 
-	dropped(var/mob/user as mob)
+	dropped(var/mob/user as mob) //god, fuck, fuck, this counts tables??? never mind
 		..()
 		if (prob(10)) //for now
 			src.visible_message("<span class='notice'>[user] drops \the [src] and it shatters on the ground!</span>")
@@ -707,58 +710,77 @@
 	// deliberate pourouts, broken bottles and glasses, etc.
 	// this might be generalizable with tweaks, but accepts target. user and splashamt optional
 	// returns 1 if splashing successful, if you need that
-	proc/splashreagents(var/atom/A,var/mob/user,splashamt=0)
+	proc/splashreagents(var/atom/target,var/mob/user,splashamt=0)
 		if (!src.reagents.total_volume)
 			return 0 //empty, no splash
 		if (!src.is_open_container() && splashamt != "all")
 			return 0 //can't spill and there's no override
 
-//		var/turfunits = 0
+		var/turfunits = 0
 		var/splashunits= 10 //default amount
 		var/totalunits = src.reagents.total_volume
-		// var/emptyit = 0 //do a check to zero out the reagents just in case
+		var/emptyit = 0 //do a check to zero out the reagents just in case
 
 		//turf/space check
-		var/turf/T = get_turf(A) //useful for both cases
+		var/turf/T = get_turf(target) //useful for both cases
 		if (!T) //didn't get a turf... is this space?
-			T = get_turf(src) //double check
-			//!T after this means space
-		if (user && src.splash_all_contents)
+			T = get_turf(src) //double check with the drink container
+			//if it's still !T after this, it means space
+		if (user && src.splash_all_contents) //deliberate choice from a holder?
 			splashamt = "all"
-		//see how much we're going to transfer, from context or if passed
-		if (splashamt == "all" || src.smashed || src.broken)
+		if (src.smashed || src.broken) //smashed or broken?
+			splashamt = "all"
+		if (splashamt == "all") //dump everything, either by context or original pass
 			splashunits = totalunits
-			//emptyit = 1 do a
+			emptyit = 1 //and make sure reagent container is zeroed
 		else if (splashamt)
 			splashunits = splashamt
 
 		//catch overrun, including default spill
-		if (splashunits < totalunits)
+		if (splashunits > totalunits)
 			splashunits = totalunits
-			//emptyit = 1
+			emptyit = 1
 
 		//splash zone
-		if (ismob(A) || isobj(A)) //apparently this doesn't work so i'll update it
+		//handle fluid case first (apply to floor)
+
+		if (istype(target,/obj/fluid))
+			boutput(user, "theres fluid here assed hoele")
+		else if (ismob(target) || isobj(target)) //apparently this doesn't work so i'll update it
+			if (target:flags & NOSPLASH) return //can't splash this??
+			if (user)
+				boutput(user, "<span class='notice'>You [src.splash_all_contents ? "pour all of" : "apply [amount_per_transfer_from_this] units of"] the solution onto [target].</span>")
+				logTheThing("combat", user, target, "pours [src] onto [constructTarget(target,"combat")] [log_reagents(src)] at [log_loc(user)].")
+			else
+				logTheThing("combat", src, target, " splashes [constructTarget(target,"combat")] with reagents: [log_reagents(src)] at [log_loc(src)].")
 			if (T) //get some on the floor, too
-				//turfunits = splashunits * 0.25
+				turfunits = splashunits * 0.25
 				splashunits *= 0.75
-			//do reactions
-			src.reagents.trans_to(A, splashunits, TOUCH)
-			src.reagents.reaction(T,TOUCH)
+			src.reagents.trans_to(target, splashunits, TOUCH)
+			src.reagents.remove_any(splashunits)
+			if(turfunits)
+				src.reagents.trans_to(T, turfunits, TOUCH)
+				src.reagents.remove_any(turfunits)
+			if(emptyit)
+				src.reagents.clear_reagents()
 			if(user)
-				logTheThing("combat", user, null, "splashes [src] [log_reagents(src)] on [A] at [log_loc(user)].")
+				logTheThing("combat", user, null, "splashes [src] [log_reagents(src)] on [target] at [log_loc(user)].")
 			return 1
 
-		else //if it's just a turf then dump it all there
-			//turfunits = splashunits
+		else if (isturf(target)) //if it's just a turf then dump it all there
+			if (user)
+				boutput(user, "<span class='notice'>You [src.splash_all_contents ? "pour all of" : "apply [amount_per_transfer_from_this] units of"] the solution onto [target].</span>")
+				logTheThing("combat", src, target, " splashes [constructTarget(target,"combat")] with reagents: [log_reagents(src)] at [log_loc(src)].")
 			if (T)
-				src.reagents.reaction(T) //got a turf, splashing da stuff
-				// if turfunits = totalunits
-					//src.reagents zero out safety
-				return 1
-			else
-//				src.reagents.deletereagentswhatever //it goes into space and nowhere
-				return 1
+				src.reagents.trans_to(T, splashunits, TOUCH)
+			else //it's space
+				src.reagents.remove_any(splashunits)
+			if(emptyit)
+				src.reagents.clear_reagents()
+			return 1
+		else
+			//rip
+			return 0
 
 	//turn this thing into glass shards and dump any reagents on turf or thing it is on. smash by indirect action (thrown, exploded)
 	//Accepts: the atom it's smashed "by" (whether by being hit or whatever)
@@ -768,7 +790,7 @@
 		// can't smash or already smashed?
 		if (src.smashed || !src.smashable)
 			return
-		src.smashed = 1
+
 		//splash all reagents on target (if any)
 		src.splashreagents(A,user)
 		// visual and audio acts
@@ -778,7 +800,9 @@
 		//leave a glassy mess if applicable
 		src.smashmess() //this does more with drinking glasses, by the way!!!
 		//bye bye drink vessel
-		qdel(src)
+		src.smashed = 1
+		SPAWN_DBG(0)
+			qdel(src)
 
 	//leaves a mess, base item is a glass shard, but extends to umbrellas/wedges for glasses. replace for cans
 	proc/smashmess()
@@ -835,7 +859,7 @@
 			hurt_prob = 75
 
 		//you don't win but you don't lose either
-		if (prob(100-success_prob)) //try to break it but fail
+		if (prob(100 - success_prob)) //try to break it but fail
 			boutput(user, "[user] smacks \the [src] pretty hard on [target], but it doesn't break!")
 			return 1
 
@@ -859,8 +883,6 @@
 				return
 
 			else //not breakable, but definitely smashable, and you just did that
-				src.smashed = 1 //smash the thing entirely
-
 				if (ismob(target))	//hit someone over the head, it smashes and does full damage
 					var/mob/M = target
 					splat = 1
@@ -882,8 +904,7 @@
 
 		//you lose (broken or failed roll)
 		else
-			src.smashed = 1
-			if (ismob(target)) //hit someone, it breaks
+			if (ismob(target)) //hit someone, it shatters
 				var/mob/M = target
 				user.visible_message("<span class='alert'><b>[user] smashes [src] on [target]! \The [src] shatters completely!</span>")
 				logTheThing("combat", user, M, "smashes [src] over [constructTarget(M,"combat")]'s head!")
@@ -891,17 +912,17 @@
 				M.TakeDamageAccountArmor("head", damage, 0, 0, DAMAGE_CUT)
 				M.changeStatus("weakened", 2 SECONDS)
 				splat = 1
-
-			else
+			else //hit something, it shatters
 				user.visible_message("<span class='alert'><b>[user] shatters \the [src] on [target]!</span>")
-			if (prob(hurt_prob))
+			if (prob(hurt_prob)) //bonus pain
 				//add gloves check
 				user.visible_message("<span class='alert'>The broken shards of [src] slice up [user]'s hand, too!</span>")
 				splat = 1
 				random_brute_damage(user, damage)
 				take_bleeding_damage(user, user, damage)
 				src.splashreagents(target)
-			if (splat) playsound(src, "sound/impact_sounds/Slimy_Splat_1.ogg", 50, 1)
+			if (splat)
+				playsound(src, "sound/impact_sounds/Slimy_Splat_1.ogg", 50, 1)
 			src.smash(target,user)
 			return 1
 
@@ -1040,7 +1061,6 @@
 	var/ice = null
 	breakable = 1
 	smashable = 1
-	var/cap_type = 0 //0 = no cap, 1 = bottlecap, 2 = cork, 3 = screwtop, 4 = champagne cork
 	var/popped = 0 //for wine/champagne and anything else with a cork that might make it obvious it's been opened
 	var/bottle_style = "clear"
 	var/fluid_style = "bottle"
@@ -1051,6 +1071,7 @@
 
 	New()
 		..()
+		src.flags &= ~OPENCONTAINER
 		src.update_icon()
 
 	on_reagent_change()
@@ -1082,15 +1103,18 @@
 		else return ..()
 
 	throw_impact(atom/A, datum/thrown_thing/thr)
-	//do breakable checks
 		..()
 		if (!src.smashable)
 			return
-		src.weakness++ //throwing it around makes it weaker
-		var/smashchance = src.smashchance(A)
-		if (prob(smashchance)) //if this is high enough, smash that bottle
+		//jostle up
+		src.shakes++
+		if (reagents)
+			reagents.physical_shock(14)
+		//throwing it around makes the container weaker
+		src.weakness++
+		if (prob(src.smashchance(A))) //if this is high enough, smash that bottle
 			src.smash(A)
-		else if (prob(smashchance) && src.breakable)
+		else if (src.breakable && prob(src.smashchance(A)))
 			if (istype(src,/obj/item/reagent_containers/food/drinks/bottle))
 				src.breakbottle()
 
@@ -1140,15 +1164,40 @@
 		..()
 
 	attack_self(mob/user as mob)
-		if (src.is_open_container())
+		if (!src.is_open_container())
 			src.unseal(user)
 			return
 		..()
 
+	smashmess() //extends to deal with caps
+		..()
+		if(!src.is_open_container())
+			switch(src.cap_type)
+				if (1)
+					var/obj/item/cap/C = new/obj/item/cap
+					C.icon_state = "cap-[src.label]"
+					C.pixel_y = -12
+					C.set_loc(src.loc)
+				if (2)
+					var/obj/item/cap/cork/C = new/obj/item/cap/cork
+					C.set_loc(src.loc)
+				if (3)
+					var/obj/item/cap/screwtop/C = new/obj/item/cap/screwtop
+					C.icon_state = "cap-[src.label]"
+					C.set_loc(src.loc)
+				if (4)
+					var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
+					C.set_loc(src.loc)
+
 	//bottleprocs
 
-	//returns 1 if it is open
+	//returns 0 if closed, 1 if it is open, 2 if open due to special case
 	proc/unseal(var/mob/user as mob,var/obj/O as obj)
+		if (src.is_open_container())
+			return 1 //shouldn't be here
+		if (src.cap_type == 0)
+			src.flags |= OPENCONTAINER
+			return 1 //shouldn't be here
 		if (istype(O, /obj/item/bottleopener)) //bottleopener
 			var/obj/item/bottleopener/BO = O
 			//beer and soda
@@ -2270,14 +2319,14 @@
 	desc = "One of those permanently mounted bottle openers. Handy for opening capped bottles, plus you'll never lose track of it!"
 	anchored = 1
 	icon = 'icons/obj/foodNdrink/bottle.dmi'
-	icon_state = "opener-mount"
+	icon_state = "opener-mounted"
 	does_wine = 0
 	does_cans = 0
 
 	attackby(obj/item/W as obj, mob/user as mob) //add clumsiness handling, crack open that cold one in a very literal way
 		if (istype(W, /obj/item/reagent_containers/food/drinks/bottle))
 			var/obj/item/reagent_containers/food/drinks/bottle/B = W
-			if (!B.is_open_container())
+			if (B.is_open_container())
 				boutput(user, "Your [B] is already cracked open!")
 			else if (B.cap_type == 1)
 				user.visible_message("<b>[user]</b> cracks open a [B] with the [src].", "You crack open a [B] with the [src].")
