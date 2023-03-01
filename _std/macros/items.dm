@@ -12,6 +12,14 @@
 #define ischoppingtool(x) (istool(x, TOOL_CHOPPING))
 #define isweldingtool(x) (istool(x, TOOL_WELDING))
 
+#define isstool(x,y) (isitem(x) && (x:stool_flags & (y)))
+#define isbucklestool(x) (isstool(x, STOOL_BUCKLES)) //has buckles (for safety)
+#define iscuffstool(x) (isstool(x, STOOL_CUFFS)) //cuffs can be secured to it even if no buckles
+#define isstepstool(x) (isstool(x, STOOL_STEP)) //you can stand on this to change a lightbulb or whatever
+#define iswrestlingstool(x) (isstool(x, STOOL_WRESTLING)) //you can do a flip off this fucker
+#define iswheelchair(x) (isstool(x, STOOL_WHEELCHAIR)) //you can do a roll in this fucker
+#define isbed(x) (isstool(x, STOOL_BED)) //you can do a snooze in this fucker
+
 /// Returns true if the given x is a grab (obj/item/grab)
 #define isgrab(x) (istype(x, /obj/item/grab/))
 

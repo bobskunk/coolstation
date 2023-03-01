@@ -82,8 +82,8 @@
 		if (istype(M.buckled,/obj/stool/chair))
 			var/obj/stool/chair/C = M.buckled
 			M.buckled.unbuckle()
-			C.buckledIn = 0
-			C.occupantw = null
+			C.buckled = 0
+			C.occupant = null
 		M.pixel_y = 0
 		M.buckled = null
 		reset_anchored(M)
@@ -93,7 +93,7 @@
 
 		if (ishuman(M))
 			var/mob/living/carbon/human/H = M
-			H.standing_on = null
+			H.standing_on = null //no longer standing on anything
 
 		playsound(M.loc, "sound/effects/flip.ogg", 50, 1)
 		M.throw_at(target, 10, 1, throw_type = THROW_CHAIRFLIP)

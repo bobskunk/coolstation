@@ -53,7 +53,7 @@
 	var/other_mobs = null
 	var/memory = ""
 	var/atom/movable/pulling = null
-	var/stat = 0.0
+	var/stat = 0.0 //what the fuck does this do???
 	var/next_click = 0
 	var/transforming = null
 	var/hand = 0
@@ -103,7 +103,9 @@
 	var/a_intent = "help"
 	var/m_intent = "run"
 	var/lastKnownIP = null
-	var/obj/stool/buckled = null
+	var/obj/stool/buckled = null //secured to a chair/bed, with or without handcuffs
+	var/obj/stool/standing_on = null //are you standing on a thing? well here's the reference
+	var/obj/stool/sitting_on = null //are you sitting on a thing? well here's the reference (distinct from buckle)
 	var/obj/item/handcuffs/handcuffs = null
 	var/obj/item/l_hand = null
 	var/obj/item/r_hand = null

@@ -74,6 +74,14 @@
 #define TOOL_WRENCHING 512
 #define TOOL_CHOPPING 1024 // for firaxes, does additional damage to doors.
 
+//stool flags
+#define STOOL_BUCKLES 1 //has buckles (for safety and shuttle launches mostly)
+#define STOOL_CUFFS 2 //cuffs can be secured to it even if no buckles
+#define STOOL_STEP 4 //you can stand on this to change a lightbulb or whatever
+#define STOOL_WRESTLING 8 //you can do a flip off this fucker
+#define STOOL_WHEELCHAIR 16 //you can do a roll in this fucker
+#define STOOL_BED 32 //you can do a snooze in this fucker
+
 //tooltip flags for rebuilding
 
 /// rebuild tooltip every single time without exception
