@@ -535,7 +535,7 @@
 		if (!src.reagents || !src.reagents.total_volume)
 			boutput(user, "<span class='alert'>Nothing left in [src], oh no!</span>")
 			return 0
-		if (src.is_open_container())
+		if (!src.is_open_container())
 			user.show_text("This thing isn't even open!", "red")
 			return 0
 		else
@@ -599,7 +599,7 @@
 	//compromise: mousedrop to fill, click to spill
 	//clicking transfers to, dragging fills from
 	afterattack(obj/target, mob/user, flag)
-		if (src.is_open_container())
+		if (!src.is_open_container())
 			return
 		//if cap, try to seal back up and not do anything
 		user.lastattacked = target
@@ -713,7 +713,7 @@
 		if (!src.is_open_container() && splashamt != "all")
 			return 0 //can't spill and there's no override
 
-		var/turfunits = 0
+//		var/turfunits = 0
 		var/splashunits= 10 //default amount
 		var/totalunits = src.reagents.total_volume
 		// var/emptyit = 0 //do a check to zero out the reagents just in case
@@ -740,7 +740,7 @@
 		//splash zone
 		if (ismob(A) || isobj(A)) //apparently this doesn't work so i'll update it
 			if (T) //get some on the floor, too
-				turfunits = splashunits * 0.25
+				//turfunits = splashunits * 0.25
 				splashunits *= 0.75
 			//do reactions
 			src.reagents.trans_to(A, splashunits, TOUCH)
@@ -750,7 +750,7 @@
 			return 1
 
 		else //if it's just a turf then dump it all there
-			turfunits = splashunits
+			//turfunits = splashunits
 			if (T)
 				src.reagents.reaction(T) //got a turf, splashing da stuff
 				// if turfunits = totalunits
@@ -1147,73 +1147,125 @@
 
 	//bottleprocs
 
+	//returns 1 if it is open
 	proc/unseal(var/mob/user as mob,var/obj/O as obj)
-		if (!src.cap_type)
-			//there's no cap here! let's just keep going
-			src.flags |= OPENCONTAINER
-			src.update_icon()
-			return 1
-		if (src.broken || src.smashed)
-			//listen bud there's nothing to open
-			return
-		if (src.cap_type == 3) //screwoff
-			src.flags |= OPENCONTAINER
-			var/obj/item/cap/screwtop/C = new/obj/item/cap/screwtop
-			C.icon_state = "cap-[src.label]"
-			C.pixel_y = -12
-			if (user.mind.assigned_role == "Bartender") //drop the cap, you got pours to do
-				C.set_loc(src.loc)
-			else
-				user.put_in_hand_or_drop(C)
-			playsound(src.loc, "sound/items/Screwdriver.ogg", 50, 1)
-			src.flags |= OPENCONTAINER
-			src.update_icon()
-			return 1
-		if (src.cap_type == 4) //champagne
-			if (src.popped) //already done it
+		if (istype(O, /obj/item/bottleopener)) //bottleopener
+			var/obj/item/bottleopener/BO = O
+			//beer and soda
+			if (src.cap_type == 1)
+				if (BO.does_bottles)
+					src.flags |= OPENCONTAINER
+					var/obj/item/cap/C = new/obj/item/cap
+					user.visible_message("<span class='notice'>[user] pops the cap off \the [src] with \the [BO].</span>", "<span class='notice'>You pop the cap off \the [src] with \the [BO].</span>")
+					C.icon_state = "cap-[src.label]"
+					C.pixel_y = -12
+					if (user.mind.assigned_role == "Bartender") //drop the cap, you got pours to do
+						C.set_loc(src.loc)
+					else
+						user.put_in_hand_or_drop(C)
+					//crack open cold one sound
+				else
+					boutput(user, "<span class='notice'>You need a bottle opener for this.</span>")
+			//wine
+			if (src.cap_type == 2)
+				if (BO.does_wine)
+					src.flags |= OPENCONTAINER
+					src.popped = 1
+					playsound(src, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
+					user.visible_message("<span class='notice'>[user] pops the cork out of \the [src] with \the [BO].</span>", "<span class='notice'>You pop the cork out of \the [src] with \the [BO].</span>")
+					var/obj/item/cap/cork/C = new/obj/item/cap/cork
+					user.put_in_hand_or_drop(C)
+					src.update_icon()
+				else
+					boutput(user, "<span class='notice'>You need a proper corkscrew for this.</span>")
+			if(src.cap_type == 3)
+				boutput(user, "<span class='notice'>This is a screwtop, just use your hands.</span>")
+				return
+			if(src.cap_type == 4)
+				boutput(user, "<span class='notice'>You uncultured swine, you don't open a bottle of [src] with a [BO]!</span>")
+				return
+			//if (src.cap_type == 5) use hands
+			//if (src.cap_type == 6) use canopener (BO.does_cans)
+			//if (src.cap_type == 7) use hands
+		else //hands
+			if (!src.cap_type)
+				//there's no cap here! let's just keep going and not say anything
 				src.flags |= OPENCONTAINER
-				var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
-				C.set_loc(src)
-				user.put_in_hand_or_drop(C)
-				playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
-				user.visible_message("[user] pulls the cork out of \the [src] again.",\
-				"<span class='notice'>You pull the cork out of \the [src]. It's not as fun as the first time...]</span>")
 				src.update_icon()
-				return
-			var/bartender_bonus = 0
-			if (user.mind.assigned_role == "Bartender")
-				bartender_bonus = 3
-			if (!src.shakes)
-				user.visible_message("[user] shakes up \the [src] a bit!",\
-				"<span class='notice'>You shake up \the [src] a bit to get it ready!</span>")
-				src.shakes++
-				return
-			if (src.shakes >= rand(1,5) || bartender_bonus) //succeed at shake on prob or bartender's magic touch
-				//pop it open
-				src.flags |= OPENCONTAINER
-				src.popped = 1
-				src.update_icon()
-				playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
-				//create cork
-				var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
-				C.set_loc(user.loc)
-				//launch it further depending on the shakes
-				C.throw_at(get_edge_target_turf(user, user.dir), (src.shakes + 2 + bartender_bonus), (3 + src.shakes))
-				//user shakes it all up and pops the cork!
-				user.visible_message("[user] shakes up \the [src] some more, then pops the cork! [src.shakes >= 4 ? "Finally..." : "Party time!"]",\
-				"<span class='notice'>You shake up \the [src] some more and pop the cork! [src.shakes >= 4 ? "At least that's over with..." : "Alright!"]</span>")
-				//after making a mess...
-				src.shakes = 0
+				return 1
+			if (src.broken || src.smashed)
+				//listen bud there's nothing to open
+				boutput(user, "<span class='notice'>\The [src] is already open. for some value of open.</span>")
+				return 1
+			//screwtop
+			if (src.cap_type == 3)
+				if (!O)
+					src.flags |= OPENCONTAINER
+					var/obj/item/cap/screwtop/C = new/obj/item/cap/screwtop
+					C.icon_state = "cap-[src.label]"
+					C.pixel_y = -12
+					if (user.mind.assigned_role == "Bartender") //drop the cap, you got pours to do
+						C.set_loc(src.loc)
+					else
+						user.put_in_hand_or_drop(C)
+					playsound(src.loc, "sound/items/Screwdriver.ogg", 50, 1)
+					src.flags |= OPENCONTAINER
+					src.update_icon()
+					return 1
+				else
+					boutput(user, "<span class='notice'>You gotta have an open hand to unscrew \the [src].</span>")
+			//champagne
+			if (src.cap_type == 4)
+				if (O)
+					boutput(user, "<span class='notice'>You gotta use your hands to pop this cork, bud!</span>")
+				else
+					if (src.popped) //already done it
+						src.flags |= OPENCONTAINER
+						var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
+						C.set_loc(src)
+						user.put_in_hand_or_drop(C)
+						playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
+						user.visible_message("[user] pulls the cork out of \the [src] again.",\
+						"<span class='notice'>You pull the cork out of \the [src]. It's not as fun as the first time...]</span>")
+						src.update_icon()
+						return
+					var/bartender_bonus = 0
+					if (user.mind.assigned_role == "Bartender")
+						bartender_bonus = 3
+					if (!src.shakes)
+						user.visible_message("[user] shakes up \the [src] a bit!",\
+						"<span class='notice'>You shake up \the [src] a bit to get it ready!</span>")
+						src.shakes++
+						return
+					if (src.shakes >= rand(1,5) || bartender_bonus) //succeed at shake on prob or bartender's magic touch
+						//pop it open
+						src.flags |= OPENCONTAINER
+						src.popped = 1
+						src.update_icon()
+						playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
+						src.splashreagents(src.loc,splashamt=(src.shakes * 5))
+						//create cork
+						var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
+						C.set_loc(user.loc)
+						//launch it further depending on the shakes
+						C.throw_at(get_edge_target_turf(user, user.dir), (src.shakes + 2 + bartender_bonus), (3 + src.shakes))
+						//user shakes it all up and pops the cork!
+						user.visible_message("[user] shakes up \the [src] some more, then pops the cork! [src.shakes >= 4 ? "Finally..." : "Party time!"]",\
+						"<span class='notice'>You shake up \the [src] some more and pop the cork! [src.shakes >= 4 ? "At least that's over with..." : "Alright!"]</span>")
+						//after making a mess...
+						src.shakes = 0
+					else
+						src.shakes++
+						user.visible_message("[user] tries and fails to pop the cork, then shakes up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]",\
+						"<span class='notice'>You can't pop the cork, so you shake up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]</span>")
+						return
+				//bob stop
+				//if (src.cap_type == 5) //poptab can (replace proc for soda cans)
+				//if (src.cap_type == 6) //punchtab can (use canopener)
+				//if (src.cap_type == 7) //bartender pour spout (reduces spills, allows precise pour)
 			else
-				src.shakes++
-				user.visible_message("[user] tries and fails to pop the cork, then shakes up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]",\
-				"<span class='notice'>You can't pop the cork, so you shake up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]</span>")
-				return
-				//
-			//todo: make a bigger mess with the more shakes there are
-		else
-			boutput(user, "<span class='alert'>Dang, you just can't seem to get \the [src] to open!</span>")
-			return 0
+				boutput(user, "<span class='alert'>Dang, you just can't seem to get \the [src] to open! You should tell a coder maybe.</span>")
+				return 0
 
 	proc/reseal(obj/item/cap/C as obj, mob/user as mob)
 		if(C.cap_type == 1) //bottlecaps don't go back on
@@ -1302,7 +1354,7 @@
 				src.UpdateOverlays(null, "label")
 			//caps and corks
 			if (src.cap_type) //does this thing have a cap?
-				if (src.is_open_container()) //is it sealed?
+				if (!src.is_open_container()) //is it sealed?
 					if (!src.popped) //is it unpopped?
 						ENSURE_IMAGE(src.image_cap, src.icon, "cap-[src.label]") //easy peasy, everyone gets standard cap
 						src.UpdateOverlays(src.image_cap, "cap")
@@ -2192,11 +2244,20 @@
 	icon_state = "champcork"
 	cap_type = 4
 
-/obj/item/corkscrew
+/obj/item/bottleopener
+	name = "bottle opener"
+	desc = "A basic bottle opener. Pops off caps and pierces cans."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "opener"
+	var/does_bottles = 1
+	var/does_wine = 0
+	var/does_cans = 1
+/obj/item/bottleopener/corkscrew
 	name = "corkscrew"
-	desc = "A really helpful bartender's tool! Opens capped bottles and pulls wine corks."
+	desc = "A really helpful bartender's tool! Opens capped bottles, pierces cans, and pulls wine corks."
 	icon = 'icons/obj/foodNdrink/bottle.dmi'
 	icon_state = "corkscrew"
+	does_wine = 1
 
 	get_desc(var/dist, var/mob/user)
 		if (user.mind?.assigned_role == "Bartender")
@@ -2204,12 +2265,14 @@
 		else
 			. = "They probably wouldn't miss it..."
 
-/obj/item/bottleopener
-	name = "bottle opener"
+/obj/item/bottleopener/mounted
+	name = "mounted bottle opener"
 	desc = "One of those permanently mounted bottle openers. Handy for opening capped bottles, plus you'll never lose track of it!"
 	anchored = 1
 	icon = 'icons/obj/foodNdrink/bottle.dmi'
-	icon_state = "opener"
+	icon_state = "opener-mount"
+	does_wine = 0
+	does_cans = 0
 
 	attackby(obj/item/W as obj, mob/user as mob) //add clumsiness handling, crack open that cold one in a very literal way
 		if (istype(W, /obj/item/reagent_containers/food/drinks/bottle))
