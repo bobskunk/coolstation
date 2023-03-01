@@ -99,7 +99,6 @@
 	attackby(obj/item/W as obj, mob/user as mob)
 		//loosen it
 		if (iswrenchingtool(W) && src.deconstructable)
-
 			actions.start(new /datum/action/bar/icon/furniture_deconstruct(src, W, 30), user)
 			src.toggle_loose(user)
 		//take it apart
@@ -110,12 +109,6 @@
 		//secure it so it doesn't move
 		else if (isscrewingtool(W) && src.securable)
 			src.toggle_secure(user)
-			return
-		else if (isscrewingtool(W) && src.securable)
-			src.toggle_secure(user)
-			return
-		else if (isweldingtool(W) && src.securable) //sure why not
-			src.toggle_weld(user)
 			return
 		else
 			return ..()
@@ -384,47 +377,6 @@
 		if (src.anchored)
 			to_buckle.anchored = 1
 		return
-
-
-
-	proc/stand_on(mob/living/user, var/danger = 0)
-		if(user.hasStatus("weakened")) //move to canstand check
-			return
-		if(src.occupant && src.occupant.buckled == src && user != src.occupant) return //move to canstand check
-
-		if (!can_climb(to_buckle,user))
-			return
-
-		if(ishuman(to_buckle))
-			if(ON_COOLDOWN(to_buckle, "chair_stand", 1 SECOND))
-				return
-			user.visible_message("<span class='notice'><b>[to_buckle]</b> climbs up on [src]!</span>", "<span class='notice'>You climb up on [src].</span>")
-
-			var/mob/living/carbon/human/H = to_buckle
-			to_buckle.set_loc(src.loc)
-			to_buckle.pixel_y = 10
-			to_buckle.ceilingreach = 1
-			to_buckle.lookingup = 1
-			get_image_group(CLIENT_IMAGE_GROUP_CEILING_ICONS).add_mob(to_buckle)
-			if (src.anchored)
-				to_buckle.anchored = 1
-			H.standing_on = src
-			to_buckle.buckled = src
-			src.occupant = to_buckle
-			src.buckledIn = 1
-			to_buckle.setStatus("buckled", duration = INFINITE_STATUS)
-
-			if (src.anchored)
-				to_buckle.anchored = 1
-			to_buckle.buckled = src
-			src.occupant = to_buckle
-			to_buckle.set_loc(src.loc)
-			src.buckledIn = 1
-			to_buckle.setStatus("buckled", duration = INFINITE_STATUS)
-		RegisterSignal(to_buckle, COMSIG_MOVABLE_SET_LOC, .proc/maybe_unbuckle)
-
-
-
 
 	//Ditto but for getting your ass down
 	//if chump = 1, you fell
@@ -1909,6 +1861,7 @@
 /* Cuffable? No, how would that work?				*/
 /* Custom acts? None..								*/
 /* ================================================ */
+
 /obj/stool/stepladder //this can be cleaned up from some lingering buckle stuffs and other checks. also forces looking up
 	name = "stepladder"
 	desc = "A small freestanding ladder that lets you peek your head up at the ceiling. Mostly for changing lightbulbs. Not for wrestling."
