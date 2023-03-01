@@ -519,10 +519,10 @@
 	//Wow, we copy+pasted the heck out of this... (Source is chemistry-tools dm)
 	attack_self(mob/user as mob)
 		if (src.splash_all_contents)
-			boutput(user, "<span class='notice'>You try to be more careful about spilling your [src].</span>")
+			boutput(user, "<span class='notice'>You try to be more careful about spilling [src].</span>")
 			src.splash_all_contents = 0
 		else
-			boutput(user, "<span class='notice'>You stop caring about how much [src] you spill.</span>")
+			boutput(user, "<span class='notice'>You stop caring about spilling [src] so much.</span>")
 			src.splash_all_contents = 1
 		return
 	//shoving all sorts of shit into here
@@ -673,17 +673,8 @@
 
 	throw_impact(atom/A, datum/thrown_thing/thr)
 		..()
-		//try spilling shit maybe?
-
-	dropped(var/mob/user as mob) //god, fuck, fuck, this counts tables??? never mind
-		..()
-		if (prob(10)) //for now
-			src.visible_message("<span class='notice'>[user] drops \the [src] and it shatters on the ground!</span>")
-			src.smash(user, 1)
-		else if (prob(30))
-			src.splashreagents(user)
-		//else if (prob(50)
-			//src.tipover()
+		if (prob(30))
+			src.splashreagents(A)
 
 	// fluid handling: (accepts /obj/fluid) clickdrag to fill. fill from any fluid you want until full.
 	// called from mousedrop
@@ -1109,7 +1100,7 @@
 		//jostle up
 		src.shakes++
 		if (reagents)
-			reagents.physical_shock(14)
+			reagents.physical_shock(5)
 		//throwing it around makes the container weaker
 		src.weakness++
 		if (prob(src.smashchance(A))) //if this is high enough, smash that bottle
@@ -1119,13 +1110,14 @@
 				src.breakbottle()
 
 	attackby(obj/item/W as obj, mob/user as mob)
-		if (src.is_open_container())
+		if (!src.is_open_container())
 			src.unseal(W, user)
-		else if (istype(W, /obj/item/cap))
+		else if (istype(W, /obj/item/cap && src.is_open_container()))
 			src.reseal(W, user)
 		else if (istype(W, /obj/item/pen) && !src.labeled)
 			src.labelbottle(user)
-		else ..()
+		else
+			..()
 		return
 
 	//harm intent to smash

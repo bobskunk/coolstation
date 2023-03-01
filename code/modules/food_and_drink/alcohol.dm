@@ -108,8 +108,8 @@
 	safe = 1
 
 /obj/item/reagent_containers/food/drinks/bottle/champagne
-	name = "Champagne"
-	desc = "Fizzy wine used in celebrations. It's not technically champagne if it's not made using grapes from the Champagne region of France."
+	name = "Space Champagne"
+	desc = "Fizzy wine used in celebrations. It's not technically space champagne if it's not made using grapes from the Champagne region of Space France."
 	icon_state = "bottle-champagneG"
 	bottle_style = "champagneG"
 	fluid_style = "champagne"
