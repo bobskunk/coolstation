@@ -1326,8 +1326,8 @@ var/list/shiba_names = list("Maru", "Coco", "Foxtrot", "Nectarine", "Moose", "Pe
 				S.anchored = 0
 			else if (istype(FP, /obj/item/chair/folded))
 				var/obj/item/chair/folded/F = FP
-				F.c_color = "chair[pick("","-b","-y","-r","-g")]"
-				F.icon_state = "folded_[F.c_color]"
+				F.variety = "chair[pick("","-b","-y","-r","-g")]"
+				F.icon_state = "folded_[F.variety]"
 				F.item_state = F.icon_state
 			return
 
