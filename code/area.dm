@@ -200,8 +200,9 @@ ABSTRACT_TYPE(/area) // don't instantiate this directly dummies, use /area/space
 				//7 is 75%
 				//9 is 80%
 				//20 is 95% and is a special case to just mute the sound without stopping it
-
-				if(M.loc.loc.type != /area/space) //bleh
+				if(M.loc.loc.type == /area/gehenna)
+					insideness = 1
+				else if(M.loc.loc.type != /area/space) //bleh
 					insideness = 4 //this is the easiest level to check so let's just use this as our non-space case FOR NOW (happy 2053 to you reading this)
 					//can make a proc that does a calculation that might be useful for adjusting a room's sound environment in general
 					//especially if we figure out how to implement occlusion and such. (god i hope sound occlusion isn't calculated serverside...)
@@ -452,10 +453,7 @@ ABSTRACT_TYPE(/area) // don't instantiate this directly dummies, use /area/space
 	proc/remove_light(var/obj/machinery/light/L)
 		if (light_manager)
 			light_manager.lights -= L
-	New()
-		..()
-		if(area_space_nopower(src))
-			power_equip = power_light = power_environ = 0
+
 
 /area/space // the base area you SHOULD be using for space/ocean/etc.
 
@@ -3771,6 +3769,16 @@ ABSTRACT_TYPE(/area/mining)
 
 	SPAWN_DBG(1.5 SECONDS)
 		src.power_change()		// all machines set to current power level, also updates lighting icon
+
+	if(area_space_nopower(src))
+		power_equip = power_light = power_environ = 0
+
+	if (force_fullbright)
+		overlays += /image/fullbright
+	else if (ambient_light)
+		var/image/I = new /image/ambient
+		I.color = ambient_light
+		overlays += I
 
 /**
   * Causes a power alert in the area. Notifies AIs.
