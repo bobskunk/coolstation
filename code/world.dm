@@ -53,6 +53,10 @@ var/global/mob/twitch_mob = 0
 #endif
 
 /world/proc/load_mode()
+#ifdef OVERRIDDEN_MODE
+	master_mode = OVERRIDDEN_MODE
+	logDiary("Mode was set from override: '[master_mode]'")
+#else
 	set background = 1
 	var/text = file2text("data/mode.txt")
 	if (text)
@@ -60,11 +64,14 @@ var/global/mob/twitch_mob = 0
 		if (lines[1])
 			master_mode = lines[1]
 			logDiary("Saved mode is '[master_mode]'")
+#endif
 
 /world/proc/save_mode(var/the_mode)
+#ifndef OVERRIDDEN_MODE
 	var/F = file("data/mode.txt")
 	fdel(F)
 	F << the_mode
+#endif
 
 /world/proc/load_intra_round_value(var/field) //Currently for solarium effects, could also be expanded to that pickle jar idea.
 	var/path = "data/intra_round.sav"
@@ -89,19 +96,19 @@ var/global/mob/twitch_mob = 0
 	join_motd = grabResource("html/motd.html")
 
 /world/proc/load_rules()
-	//rules = file2text("config/rules.html")
-	/*SPAWN_DBG(0)
-		rules = world.Export("http://wiki.ss13.co/api.php?action=parse&page=Rules&format=json")
+	rules = file2text("config/rules.html")
+	SPAWN_DBG(0)
+		rules = world.Export("https://wiki.coolstation.space/w/api.php?action=parse&page=Rules&format=json")
 		if(rules && rules["CONTENT"])
 			rules = json_decode(file2text(rules["CONTENT"]))
 			if(rules && rules["parse"] && rules["parse"]["text"] && rules["parse"]["text"]["*"])
 				rules = rules["parse"]["text"]["*"]
 			else
 				rules = "<html><head><title>Rules</title><body>There are no rules! Go nuts!</body></html>"
-		else*/
-	rules = {"<meta http-equiv="refresh" content="0; url=http://wiki.ss13.co/Rules">"}
-	//if (!rules)
-	//	rules = "<html><head><title>Rules</title><body>There are no rules! Go nuts!</body></html>"
+		else
+	//rules = {"<meta http-equiv="refresh" content="0; url=https://wiki.coolstation.space/wiki/Rules">"} //this was temporary workaround
+	if (!rules)
+		rules = "<html><head><title>Rules</title><body>There are no rules! Go nuts!</body></html>" //lol sure why not
 
 /world/proc/load_admins()
 	set background = 1
@@ -329,6 +336,8 @@ var/f_color_selector_handler/F_Color_Selector
 		mining_controls = new /datum/mining_controller()
 		Z_LOG_DEBUG("Preload", "  emote_controls")
 		emote_controls = new /datum/emote_controller()
+		Z_LOG_DEBUG("Preload", "  broadcast_controls")
+		broadcast_controls = new /datum/broadcast_controller()
 		Z_LOG_DEBUG("Preload", "  score_tracker")
 		score_tracker = new /datum/score_tracker()
 		Z_LOG_DEBUG("Preload", "  actions")
@@ -433,6 +442,7 @@ var/f_color_selector_handler/F_Color_Selector
 
 	lobby_titlecard = new /datum/titlecard()
 
+	lobby_titlecard.set_agreement_html() //only need to do this here i think, it's otherwise pretty static
 	lobby_titlecard.set_pregame_html()
 
 	diary = file("data/logs/[time2text(world.realtime, "YYYY/MM-Month/DD-Day")].log")
@@ -671,6 +681,12 @@ var/f_color_selector_handler/F_Color_Selector
 	mantaSetMove(moving=1, doShake=0)
 #endif
 
+	//Please delete this once broadcasting code has been proven to work and integrated into shit
+	Z_LOG_DEBUG("World/Init", "Setting up a test transmission...")
+	broadcast_controls.broadcast_start(new /datum/directed_broadcast/testing)
+	//new /datum/directed_broadcast/testing_finite //this gets tracked it should be fine :)
+	broadcast_controls.broadcast_start(new /datum/directed_broadcast/testing_teevee)
+
 #ifdef TWITCH_BOT_ALLOWED
 	for (var/client/C)
 		if (C.ckey == TWITCH_BOT_CKEY)
@@ -765,14 +781,14 @@ var/f_color_selector_handler/F_Color_Selector
 #endif
 	shutdown()
 #endif
+	var/newround = 'sound/misc/NewRound.ogg'
+	if (prob(40))
+		newround = pick('sound/misc/NewRound2.ogg', 'sound/misc/NewRound3.ogg', 'sound/misc/NewRound4.ogg', 'sound/misc/NewRound5.ogg', 'sound/misc/NewRound6.ogg', 'sound/misc/NewRound7.ogg', 'sound/misc/TimeForANewRound.ogg')
 
 	SPAWN_DBG(world.tick_lag)
 		for (var/client/C)
 			if (C.mob)
-				if (prob(40))
-					C.mob << sound(pick('sound/misc/NewRound2.ogg', 'sound/misc/NewRound3.ogg', 'sound/misc/NewRound4.ogg', 'sound/misc/NewRound5.ogg', 'sound/misc/TimeForANewRound.ogg'))
-				else
-					C.mob << sound('sound/misc/NewRound.ogg')
+				C.mob << sound(newround)
 
 #ifdef DATALOGGER
 	SPAWN_DBG(world.tick_lag*2)
@@ -788,7 +804,7 @@ var/f_color_selector_handler/F_Color_Selector
 		//game_stats.WriteToFile("data/game_stats.txt")
 #endif
 
-	sleep(5 SECONDS) // wait for sound to play
+	sleep(7 SECONDS) // wait for sound to play
 	if(config.update_check_enabled)
 		world.installUpdate()
 

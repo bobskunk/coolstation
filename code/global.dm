@@ -283,6 +283,7 @@ var/global
 	brigshuttle_location = 0
 	miningshuttle_location = 0
 	researchshuttle_location = 0
+	shoppingshuttle_location = 0
 	researchshuttle_lockdown = 0
 	toggles_enabled = 1
 	announce_banlogin = 1
@@ -398,6 +399,10 @@ var/global
 	list/APCIndexToFlag
 	list/APCIndexToWireColor
 	list/APCWireColorToIndex
+	list/VendWireColorToFlag = RandomVendWires()
+	list/VendIndexToFlag
+	list/VendIndexToWireColor
+	list/VendWireColorToIndex
 
 	// drsingh global reaction cache to reduce cpu usage in handle_reactions (Chemistry-Holder.dm)
 	list/chemical_reactions_cache = list()
@@ -422,14 +427,14 @@ var/global
 	antag_hunter = image('icons/mob/antag_overlays.dmi', icon_state = "hunter")
 	antag_werewolf = image('icons/mob/antag_overlays.dmi', icon_state = "werewolf")
 	antag_emagged = image('icons/mob/antag_overlays.dmi', icon_state = "emagged")
-	antag_mindslave = image('icons/mob/antag_overlays.dmi', icon_state = "mindslave")
+	antag_insurgent = image('icons/mob/antag_overlays.dmi', icon_state = "insurgent")
 	antag_vampthrall = image('icons/mob/antag_overlays.dmi', icon_state = "vampthrall")
 	antag_head = image('icons/mob/antag_overlays.dmi', icon_state = "head")
 	antag_rev = image('icons/mob/antag_overlays.dmi', icon_state = "rev")
 	antag_revhead = image('icons/mob/antag_overlays.dmi', icon_state = "rev_head")
 	antag_syndicate = image('icons/mob/antag_overlays.dmi', icon_state = "syndicate")
 	antag_spyleader = image('icons/mob/antag_overlays.dmi', icon_state = "spy")
-	antag_spyslave = image('icons/mob/antag_overlays.dmi', icon_state = "spyslave")
+	antag_spyrecruit = image('icons/mob/antag_overlays.dmi', icon_state = "spyrecruit")
 	antag_gang = image('icons/mob/antag_overlays.dmi', icon_state = "gang")
 	antag_gang_leader = image('icons/mob/antag_overlays.dmi', icon_state = "gang_head")
 	antag_grinch = image('icons/mob/antag_overlays.dmi', icon_state = "grinch")
@@ -444,11 +449,25 @@ var/global
 	pod_wars_SY = image('icons/mob/antag_overlays.dmi', icon_state = "syndicate")
 	pod_wars_SY_CMDR = image('icons/mob/antag_overlays.dmi', icon_state = "syndcomm")
 
-	//SpyGuy: Oh my fucking god the QM shit. *cry *wail *sob *weep *vomit *scream
-	list/datum/supply_packs/qm_supply_cache = list()
+	//QM Caches: It's Fine Don't Worry About It
+	list/datum/supply_packs/qm_supply_cache = list() //the big fucker that i want to replace with the below list of lists
+	//QM Vendor-Specific Lists
+	list/datum/supply_packs/vendor_supply_caches = list() //this fucko needs to contain all the below fuckos
+	//but i don't know how
+	list/datum/supply_packs/nanotrasen_supply_cache = list() //nanotrasen direct order
+	list/datum/supply_packs/engineering_supply_cache = list() //juicy engineering
+	list/datum/supply_packs/construction_supply_cache = list() //construction comrade
+	list/datum/supply_packs/electronics_supply_cache = list() //electronics libre
+	list/datum/supply_packs/grocery_supply_cache = list() //giuseppe's grocery
+	list/datum/supply_packs/heavy_supply_cache = list() //hafgan heavy equipment
+	list/datum/supply_packs/vending_supply_cache = list() //vend-tech
+	list/datum/supply_packs/party_supply_cache = list() //all celebrations are beautiful
+	list/datum/supply_packs/misc_supply_cache = list() //anything that doesn't fit, pawn/junk shop (move to roaming trader imo)
+	//need furniture, clothing, stationary, misc, but we're not doing that yet
 
 	//Used for QM Ordering Categories
 	list/QM_CategoryList = list()
+	list/QM_SupplierList = list()
 
 	//Okay, I guess this was getting constructed every time someone wanted something from it
 	list/datum/syndicate_buylist/syndi_buylist_cache = list()
@@ -488,10 +507,11 @@ var/global
 	transparentColor = "#ff00e4"
 
 	pregameHTML = null
+	newplayerHTML = null
 
 	list/cooldowns
 
-	syndicate_currency = "[pick("Syndie","Baddie","Evil","Spooky","Dread","Yee","Murder","Illegal","Totally-Legit","Crime","Awful")][pick("-"," ")][pick("credits","bux","tokens","cash","dollars","tokens","dollarydoos","tickets","souls","doubloons","Pesos","Rubles","Rupees")]"
+	syndicate_currency = "[pick("Flooz","Beenz","Telecrystals","Telecrystals","Telecrystals","Telecrystals","Telecrystals","Telecrystals")]"
 
 
 /proc/addGlobalRenderSource(var/image/I, var/key)

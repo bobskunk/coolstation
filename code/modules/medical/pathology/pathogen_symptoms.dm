@@ -40,7 +40,7 @@ datum/pathogeneffects
 	proc/infect_snap(var/mob/M as mob, var/datum/pathogen/origin, var/range = 5)
 		for (var/mob/I in view(range, M.loc))
 			if (I != M && ((isturf(I.loc) && isturf(M.loc) && can_line_airborne(get_turf(M), I, 5)) || I.loc == M.loc))
-				if(istype(M, /mob/living/carbon/human))
+				if(istype(I, /mob/living/carbon/human))
 					var/mob/living/carbon/human/H = I
 					if(prob(100-H.get_disease_protection()))
 						SPAWN_DBG(rand(0.5,2) SECONDS)
@@ -600,13 +600,13 @@ obj/hallucinated_item
 		myowner = owner
 		name = prototype.name
 		desc = prototype.desc
+		SPAWN_DBG(30 SECONDS)	qdel(src)
 
 	attack_hand(var/mob/M)
-		if (M == owner)
-			M.show_message("<span class='alert'>[src] slips through your hands!</span>")
-			if (prob(10))
-				M.show_message("<span class='alert'>[src] disappears!</span>")
-				qdel(src)
+		M.show_message("<span class='alert'>[src] slips through your hands!</span>")
+		if (prob(30))
+			M.show_message("<span class='alert'>[src] disappears!</span>")
+			qdel(src)
 
 datum/pathogeneffects/malevolent/serious_paranoia
 	name = "Serious Paranoia"
@@ -647,7 +647,7 @@ datum/pathogeneffects/malevolent/serious_paranoia
 
 	proc/floor_in_view(var/mob/M)
 		var/list/ret = list()
-		for (var/turf/simulated/floor/T in view(M, 7))
+		for (var/turf/floor/T in view(M, 7))
 			ret += T
 		return ret
 

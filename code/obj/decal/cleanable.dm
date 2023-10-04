@@ -80,16 +80,16 @@ proc/make_cleanable(var/type,var/loc,var/list/viral_list)
 					T.clean = 0
 				last_turf = T
 
-			if (istype(src.loc, /turf/simulated/floor))
-				var/turf/simulated/T = src.loc
+			if (istype(src.loc, /turf/floor))
+				var/turf/T = src.loc
 				T.cleanable_fluid_react()
 
 	disposing()
 		if (can_dry)
 			processing_items.Remove(src)
 
-		if (istype(src.loc, /turf/simulated/floor))
-			var/turf/simulated/T = src.loc
+		if (istype(src.loc, /turf/floor))
+			var/turf/T = src.loc
 			T.messy = max(T.messy-1, 0)
 			if (!T.messy) //no mess left at all?
 				T.clean	= 1 //we're probably being cleaned
@@ -508,7 +508,7 @@ var/list/blood_decal_violent_icon_states = list("floor1", "floor2", "floor3", "f
 
 		src.reagents.add_reagent(reagent_id, amount)
 
-		var/turf/simulated/floor/T = src.loc
+		var/turf/floor/T = src.loc
 		if (istype(T) && do_fluid_react)
 			if (T.cleanable_fluid_react(src))
 				return
@@ -1126,6 +1126,79 @@ var/list/blood_decal_violent_icon_states = list("floor1", "floor2", "floor3", "f
 				src.sampled = 1
 				return 1
 
+/obj/decal/cleanable/mess
+	name = "mess"
+	icon = 'icons/obj/decals/cleanables.dmi'
+	icon_state = "mess1"
+	gross = 1
+
+	random_splotch
+		random_icon_states = list("mess1", "mess2", "mess3", "mess4")
+
+	splotch_one
+		icon_state = "mess1"
+
+	splotch_two
+		icon_state = "mess2"
+
+	splotch_three
+		icon_state = "mess3"
+
+	splotch_four
+		icon_state = "mess4"
+
+	random_food
+		icon_state = "messfood"
+		random_icon_states = list("messnoodle1sauce", "messnoodle1meatball", "messnoodle1", "messnoodle2sauce", "messnoodle2meatball", "messnoodle2", "messfries", "messchips", "messburrito", "messmaple")
+
+	random_litter
+		icon_state = "messlitter"
+		random_icon_states = list("messfries", "messchips", "messcan1", "messcan2", "messnougat")
+
+	noodles
+		name = "spilled plain noodles"
+		icon_state = "messnoodle1"
+		random_icon_states = list("messnoodle1", "messnoodle2")
+
+	noodles/random_sauce
+		name = "spilled noodles in sauce"
+		icon_state = "messnoodle1sauce"
+		random_icon_states = list("messnoodle1sauce", "messnoodle2sauce")
+
+	noodles/random_meatballs
+		name = "spilled noodles with meatballs"
+		icon_state = "messnoodle1meatball"
+		random_icon_states = list("messnoodle1meatball", "messnoodle2meatball")
+
+	noodles/random_all
+		icon_state = "messnoodle1sauce"
+		random_icon_states = list("messnoodle1sauce", "messnoodle1meatball", "messnoodle1", "messnoodle2sauce", "messnoodle2meatball", "messnoodle2")
+
+	fries
+		name = "spilled fries"
+		icon_state = "messfries"
+
+	chips
+		name = "spilled chips"
+		icon_state = "messchips"
+
+	sodacan
+		name = "discarded soda can"
+		icon_state = "messcan1"
+		random_icon_states = list("messcan1", "messcan2")
+
+	nougat
+		name = "discarded nougat wrapper"
+		icon_state = "messnougat"
+
+	burrito
+		name = "squashed burrito"
+		icon_state = "messburrito"
+
+	maple
+		name = "shattered maple syrup bottle"
+		icon_state = "messmaple"
+
 /obj/decal/cleanable/tomatosplat
 	name = "ruined tomato"
 	desc = "Gallows humour."
@@ -1173,6 +1246,12 @@ var/list/blood_decal_violent_icon_states = list("floor1", "floor2", "floor3", "f
 	desc = "cherryblossom petals floating around from...somewhere?"
 	icon = 'icons/obj/dojo.dmi'
 	icon_state = "sakura_overlay"
+
+/obj/decal/cleanable/bigchallenges
+	name = "Big Challenges"
+	desc = "They're really big challenges. They're really consequential challenges."
+	icon = 'icons/obj/decals/graffiti.dmi'
+	icon_state = "bigchallenges"
 
 /obj/decal/cleanable/slime // made by slugs and snails
 	name = "slime"
@@ -1229,6 +1308,7 @@ var/list/blood_decal_violent_icon_states = list("floor1", "floor2", "floor3", "f
 
 	dirt4
 		icon_state = "dirt4"
+		random_dir = 0
 
 	dirt5
 		icon_state = "dirt5"
@@ -1236,7 +1316,7 @@ var/list/blood_decal_violent_icon_states = list("floor1", "floor2", "floor3", "f
 	random
 		New()
 			..()
-			icon_state = pick("dirt","dirt2","dirt3","dirt4","dirt5")
+			icon_state = pick("dirt","dirt2","dirt3","dirt5") //dirt4 is very directional and parses weird on its own, like mulebot blood trails
 
 	jen
 		icon_state = "dirt_jen"
@@ -2171,7 +2251,7 @@ IIIIIIIIII      TTTTTTTTTTT              SSSSSSSSSSSSSSS        PPPPPPPPPP      
 	// vis_amount should only be 1-5 if you want anything to happen
 		src.reagents.add_reagent(reagent_id, amount)
 
-		var/turf/simulated/floor/T = src.loc
+		var/turf/floor/T = src.loc
 		if (istype(T) && do_fluid_react)
 			if (T.cleanable_fluid_react(src))
 				return

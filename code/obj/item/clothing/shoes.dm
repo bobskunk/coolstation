@@ -2,7 +2,7 @@
 
 //defines in setup.dm:
 //LACES_NORMAL 0, LACES_TIED 1, LACES_CUT 2, LACES_NONE -1
-
+ABSTRACT_TYPE(/obj/item/clothing/shoes)
 /obj/item/clothing/shoes
 	name = "shoes"
 	icon = 'icons/obj/clothing/item_shoes.dmi'
@@ -446,6 +446,7 @@
 	icon_state = "swatheavy"
 	magnetic = 1
 	c_flags = NOSLIP
+	contraband = 3
 
 /obj/item/clothing/shoes/fuzzy //not boolean slippers
 	name = "fuzzy slippers"
@@ -678,3 +679,8 @@
 	icon_state = "mjwhite"
 	desc = "Dainty and formal. This pair is white."
 	step_sound = "footstep"
+
+//I sproted these with the soviet mining gear but you can use em generally. Kinda weird we didn't have any metal-toed boots all this time.
+/obj/item/clothing/shoes/work_boots
+	name = "work boots"
+	icon_state = "work_boots"

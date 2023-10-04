@@ -305,7 +305,7 @@
 /obj/machinery/computer/barcode
 	name = "Barcode Computer"
 	desc = "Used to print barcode stickers for the cargo routing system."
-
+	glow_in_dark_screen = FALSE
 	icon = 'icons/obj/delivery.dmi'
 	icon_state = "barcode_comp"
 	deconstruct_flags = DECON_SCREWDRIVER | DECON_WRENCH | DECON_WIRECUTTERS | DECON_MULTITOOL
@@ -340,7 +340,7 @@
 		if (istype(I, /obj/item/card/id) || (istype(I, /obj/item/device/pda2) && I:ID_card))
 			if (istype(I, /obj/item/device/pda2) && I:ID_card) I = I:ID_card
 			boutput(user, "<span class='notice'>You swipe the ID card.</span>")
-			account = FindBankAccountByName(I:registered)
+			account = FindBankAccountById(I:registered_id)
 			if(account)
 				var/enterpin = input(user, "Please enter your PIN number.", "Order Console", 0) as null|num
 				if (enterpin == I:pin)

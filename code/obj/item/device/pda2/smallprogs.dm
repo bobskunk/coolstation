@@ -18,6 +18,8 @@
 //Ticket writer
 //Cargo request
 //Station Namer
+//Space GPS
+//AI Governor Manifest
 
 //Banking
 /datum/computer/file/pda_program/banking
@@ -151,13 +153,13 @@
 			if("alert")
 				status_signal.data["picture_state"] = data1
 
-		src.post_signal(status_signal,"1435")
+		src.post_signal(status_signal,FREQ_STATUS)
 
 //Signaler
 /datum/computer/file/pda_program/signaler
 	name = "Signalix 5"
 	size = 8
-	var/send_freq = 1457 //Frequency signal is sent at, should be kept within normal radio ranges.
+	var/send_freq = FREQ_DEFAULT //Frequency signal is sent at, should be kept within normal radio ranges.
 	var/send_code = 30
 	var/last_transmission = 0 //No signal spamming etc
 
@@ -1154,12 +1156,12 @@ Using electronic "Detomatix" BOMB program is perhaps less simple!<br>
 			O.orderedby = src.master.owner
 			O.console_location = get_area(src.master)
 			shippingmarket.supply_requests += O
-			src.temp = "Request sent to Supply Console. The Quartermasters will process your request as soon as possible.<BR>"
+			src.temp = "Request sent to Supply Console. The Logistics Department will process your request as soon as possible.<BR>"
 
 			// pda alert ////////
 			if (!antispam || (antispam < (ticker.round_elapsed_ticks)) )
 				antispam = ticker.round_elapsed_ticks + SPAM_DELAY
-				var/datum/radio_frequency/transmit_connection = radio_controller.return_frequency("1149")
+				var/datum/radio_frequency/transmit_connection = radio_controller.return_frequency("[FREQ_PDA]")
 				var/datum/signal/pdaSignal = get_free_signal()
 				pdaSignal.data = list("address_1"="00000000", "command"="text_message", "sender_name"="CARGO-MAILBOT",  "group"=list(MGD_CARGO, MGA_CARGOREQUEST), "sender"="00000000", "message"="Notification: [O.object] requested by [O.orderedby] at [O.console_location].")
 				pdaSignal.transmission_method = TRANSMISSION_RADIO
@@ -1285,6 +1287,34 @@ Using electronic "Detomatix" BOMB program is perhaps less simple!<br>
 			src.y = T.y
 			src.z = T.z
 
+		src.master.add_fingerprint(usr)
+		src.master.updateSelfDialog()
+		return
+
+///allows AIs to see what actions are active/inactive
+/datum/computer/file/pda_program/ai_governors
+	name = "AI Governor Manifest"
+	size = 2
+
+	return_text()
+		if(..())
+			return
+
+		var/dat = src.return_text_header()
+		dat += "<h4>Governor Manifest:</h4>"
+
+		for (var/index in governor_registry)
+			dat += "[index]: [length(governor_registry[index]) ? "ENABLED" : "DISABLED"]<br>"
+		dat += "<br>"
+
+		dat += "<a href='byond://?src=\ref[src];update=1'>Refresh</a>"
+
+		return dat
+
+	Topic(href, href_list)
+		if(..())
+			return
+		//We want the refresh to just redraw the thing, which doesn't actually require any special handling :)
 		src.master.add_fingerprint(usr)
 		src.master.updateSelfDialog()
 		return

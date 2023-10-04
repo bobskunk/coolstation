@@ -152,8 +152,8 @@
 	ai_target_old.len = 0
 	move_laying = null
 
-	qdel(chat_text)
-	chat_text = null
+	//qdel(chat_text) should be on atom now
+	//chat_text = null
 /*
 	if(stamina_bar)
 		for (var/datum/hud/thishud in huds)
@@ -299,6 +299,25 @@
 		if (observer.client)
 			src.apply_camera(observer.client)
 	..()
+
+// Toggles the visibility of ceiling images, or can be passed explicit values (stepladders, for example)
+/mob/living/show_ceiling()
+	if (src.ceiling_shown)
+		src.ceiling_shown = 0
+		get_image_group(CLIENT_IMAGE_GROUP_CEILING_ICONS).remove_mob(src)
+	else
+		src.ceiling_shown = 1
+		get_image_group(CLIENT_IMAGE_GROUP_CEILING_ICONS).add_mob(src)
+	boutput(src, "You [src.ceiling_shown ? "look up at" : "stop looking"] at the ceiling.")
+
+/mob/living/proc/force_ceiling(var/state)
+	set hidden = TRUE
+	if (!state)
+		src.ceiling_shown = 0
+		get_image_group(CLIENT_IMAGE_GROUP_CEILING_ICONS).remove_mob(src)
+	else
+		src.ceiling_shown = 1
+		get_image_group(CLIENT_IMAGE_GROUP_CEILING_ICONS).add_mob(src)
 
 /mob/living/attach_hud(datum/hud/hud)
 	for (var/mob/dead/target_observer/observer in observers)
@@ -448,7 +467,7 @@
 			if (cryo.exit_prompt(src))
 				return
 
-		if (src.client && src.client.check_key(KEY_EXAMINE))
+		if (src.client && src.client.check_key(KEY_EXAMINE) && !src.client.experimental_mouseless)
 			src.examine_verb(target)
 			return
 
@@ -637,6 +656,13 @@
 			else
 				src.emote("handpuppet")
 
+/mob/living/Logout()
+	..()
+	//cover the ceiling view too
+	if(ceiling_shown)
+		ceiling_shown = 0
+		get_image_group(CLIENT_IMAGE_GROUP_CEILING_ICONS).remove_mob(src)
+
 /mob/living/say(var/message, ignore_stamina_winded)
 	message = strip_html(trim(copytext(sanitize_noencode(message), 1, MAX_MESSAGE_LEN)))
 
@@ -747,14 +773,26 @@
 				if (isAI(src))
 					switch (lowertext(copytext(message, 2, 3))) // One vs. two letter prefix.
 						if ("1")
+							if (ACTION_GOVERNOR_BLOCKED(AI_GOVERNOR_GENRADIO))
+								var/mob/living/silicon/ai/me = src //ugh
+								boutput(me.deployed_to_eyecam ? me.eyecam : src, "<span class='alert'>You have lost the ability to use the general radio.</span>")
+								return
 							message_mode = "internal 1"
 							message = copytext(message, 3)
 
 						if ("2")
+							if (ACTION_GOVERNOR_BLOCKED(AI_GOVERNOR_CORERADIO))
+								var/mob/living/silicon/ai/me = src
+								boutput(me.deployed_to_eyecam ? me.eyecam : src, "<span class='alert'>You have lost the ability to use the AI core radio.</span>")
+								return
 							message_mode = "internal 2"
 							message = copytext(message, 3)
 
 						if ("3")
+							if (ACTION_GOVERNOR_BLOCKED(AI_GOVERNOR_DEPRADIO))
+								var/mob/living/silicon/ai/me = src
+								boutput(me.deployed_to_eyecam ? me.eyecam : src, "<span class='alert'>You have lost the ability to use the departmental radio.</span>")
+								return
 							message_mode = "monitor"
 							var/end = 3
 							if (!lowertext(copytext(message,3,4) == " "))
@@ -1425,7 +1463,7 @@ var/global/icon/human_static_base_idiocy_bullshit_crap = icon('icons/mob/human.d
 
 		if (INTENT_DISARM)
 			if (M.is_mentally_dominated_by(src))
-				boutput(M, "<span class='alert'>You cannot harm your master!</span>")
+				boutput(M, "<span class='alert'>You cannot harm this person!</span>")
 				return
 
 			var/datum/limb/L = M.equipped_limb()
@@ -1447,7 +1485,7 @@ var/global/icon/human_static_base_idiocy_bullshit_crap = icon('icons/mob/human.d
 
 		if (INTENT_HARM)
 			if (M.is_mentally_dominated_by(src))
-				boutput(M, "<span class='alert'>You cannot harm your master!</span>")
+				boutput(M, "<span class='alert'>You cannot harm this person!</span>")
 				return
 
 			if (M != src)
@@ -1651,13 +1689,13 @@ var/global/icon/human_static_base_idiocy_bullshit_crap = icon('icons/mob/human.d
 
 /mob/living/critter/keys_changed(keys, changed)
 	..()
-	if (changed & KEY_RUN)
+	if (changed & KEY_RUN && !src.client?.experimental_mouseless)
 		if (hud && !HAS_MOB_PROPERTY(src, PROP_CANTSPRINT))
 			src.hud.set_sprint(keys & KEY_RUN)
 
 /mob/living/carbon/human/keys_changed(keys, changed)
 	..()
-	if (changed & KEY_RUN)
+	if (changed & KEY_RUN && !src.client?.experimental_mouseless)
 		if (hud && !HAS_MOB_PROPERTY(src, PROP_CANTSPRINT))
 			src.hud.set_sprint(keys & KEY_RUN)
 

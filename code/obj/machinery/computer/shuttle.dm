@@ -142,8 +142,44 @@
 		dir = WEST
 		pixel_x = -25
 
-/obj/machinery/computer/icebase_elevator
-	name = "Elevator Control"
+/obj/machinery/computer/shopping_shuttle
+	name = "Shuttle Control"
+	icon_state = "shuttle"
+	machine_registry_idx = MACHINES_SHUTTLECOMPS
+	var/active = 0
+	var/net_id = null
+	var/obj/machinery/power/data_terminal/link = null
+
+/obj/machinery/computer/shopping_shuttle/embedded
+	icon_state = "shuttle-embed"
+	density = 0
+	layer = EFFECTS_LAYER_1 // Must appear over cockpit shuttle wall thingy.
+
+	north
+		dir = NORTH
+		pixel_y = 25
+
+	east
+		dir = EAST
+		pixel_x = 25
+
+	south
+		dir = SOUTH
+		pixel_y = -25
+
+	west
+		dir = WEST
+		pixel_x = -25
+
+/obj/machinery/computer/icebase_crew_elevator
+	name = "Crew Elevator Control"
+	icon_state = "shuttle"
+	machine_registry_idx = MACHINES_ELEVATORCOMPS
+	var/active = 0
+	var/location = 1 // 0 for bottom, 1 for top
+
+/obj/machinery/computer/icebase_mine_elevator
+	name = "Mining Elevator Control"
 	icon_state = "shuttle"
 	machine_registry_idx = MACHINES_ELEVATORCOMPS
 	var/active = 0
@@ -469,6 +505,86 @@
 
 	return
 
+/obj/machinery/computer/shopping_shuttle/New()
+	..()
+	SPAWN_DBG(0.5 SECONDS)
+		src.net_id = generate_net_id(src)
+
+		if(!src.link)
+			var/turf/T = get_turf(src)
+			var/obj/machinery/power/data_terminal/test_link = locate() in T
+			if(test_link && !DATA_TERMINAL_IS_VALID_MASTER(test_link, test_link.master))
+				src.link = test_link
+				src.link.master = src
+
+/obj/machinery/computer/shopping_shuttle/attack_hand(mob/user as mob)
+	if(..())
+		return
+	var/dat = "<a href='byond://?src=\ref[src];close=1'>Close</a><BR><BR>"
+
+	if(shoppingshuttle_location)
+		dat += "Shuttle Location: Station"
+	else
+		dat += "Shuttle Location: Starlight Minimall"
+	dat += "<BR>"
+	if(active)
+		dat += "Moving"
+	else
+		dat += "<a href='byond://?src=\ref[src];send=1'>Move Shuttle</a><BR><BR>"
+
+	user.Browse(dat, "window=shuttle")
+	onclose(user, "shuttle")
+	return
+
+/obj/machinery/computer/shopping_shuttle/Topic(href, href_list)
+	if(..())
+		return
+	if ((usr.contents.Find(src) || (isturf(src.loc) && in_interact_range(src, usr))) || (issilicon(usr)))
+		src.add_dialog(usr)
+		if (href_list["send"])
+			for(var/obj/machinery/shuttle/engine/propulsion/eng as anything in machine_registry[MACHINES_SHUTTLEPROPULSION]) // ehh
+				if(eng.stat1 == 0 && eng.stat2 == 0 && eng.id == "shop")
+					boutput(usr, "<span class='alert'>Propulsion thruster damaged. Unable to move shuttle.</span>")
+					return
+				else
+					continue
+
+			if(!active)
+				for(var/obj/machinery/computer/shopping_shuttle/C in machine_registry[MACHINES_SHUTTLECOMPS])
+					active = 1
+					C.visible_message("<span class='alert'>The Shopping Shuttle has been called and will leave shortly!</span>")
+
+				SPAWN_DBG(10 SECONDS)
+					call_shuttle()
+
+		else if (href_list["close"])
+			src.remove_dialog(usr)
+			usr.Browse(null, "window=shuttle")
+
+	src.add_fingerprint(usr)
+	src.updateUsrDialog()
+	return
+
+/obj/machinery/computer/shopping_shuttle/proc/call_shuttle()
+
+	if(shoppingshuttle_location == 0)
+		var/area/start_location = locate(/area/shuttle/shopping/shittymall)
+		var/area/end_location = locate(/area/shuttle/shopping/station)
+		start_location.move_contents_to(end_location)
+		shoppingshuttle_location = 1
+	else
+		if(shoppingshuttle_location == 1)
+			var/area/start_location = locate(/area/shuttle/shopping/station)
+			var/area/end_location = locate(/area/shuttle/shopping/shittymall)
+			start_location.move_contents_to(end_location)
+			shoppingshuttle_location = 0
+
+	for(var/obj/machinery/computer/shopping_shuttle/C in machine_registry[MACHINES_SHUTTLECOMPS])
+		active = 0
+		C.visible_message("<span class='alert'>The Shopping Shuttle has Moved!</span>")
+
+	return
+
 /obj/machinery/computer/asylum_shuttle/attack_hand(mob/user as mob)
 	if(..())
 		return
@@ -571,7 +687,7 @@
 			return
 
 
-/obj/machinery/computer/icebase_elevator/attack_hand(mob/user as mob)
+/obj/machinery/computer/icebase_crew_elevator/attack_hand(mob/user as mob)
 	if(..())
 		return
 	var/dat = "<a href='byond://?src=\ref[src];close=1'>Close</a><BR><BR>"
@@ -590,7 +706,7 @@
 	onclose(user, "ice_elevator")
 	return
 
-/obj/machinery/computer/icebase_elevator/Topic(href, href_list)
+/obj/machinery/computer/icebase_crew_elevator/Topic(href, href_list)
 	if(..())
 		return
 	if ((usr.contents.Find(src) || (in_interact_range(src, usr) && istype(src.loc, /turf))) || (issilicon(usr)))
@@ -598,7 +714,7 @@
 
 		if (href_list["send"])
 			if(!active)
-				for(var/obj/machinery/computer/icebase_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
+				for(var/obj/machinery/computer/icebase_crew_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
 					active = 1
 					C.visible_message("<span class='alert'>The elevator begins to move!</span>")
 					playsound(C.loc, "sound/machines/elevator_move.ogg", 100, 0)
@@ -614,22 +730,86 @@
 	return
 
 
-/obj/machinery/computer/icebase_elevator/proc/call_shuttle()
+/obj/machinery/computer/icebase_crew_elevator/proc/call_shuttle()
 
 	if(location == 0) // at bottom
-		var/area/start_location = locate(/area/shuttle/icebase_elevator/lower)
-		var/area/end_location = locate(/area/shuttle/icebase_elevator/upper)
-		start_location.move_contents_to(end_location, /turf/simulated/floor/plating)
+		var/area/start_location = locate(/area/shuttle/icebase_crew_elevator/lower)
+		var/area/end_location = locate(/area/shuttle/icebase_crew_elevator/upper)
+		start_location.move_contents_to(end_location, /turf/floor/plating)
 		location = 1
 	else // at top
-		var/area/start_location = locate(/area/shuttle/icebase_elevator/upper)
-		var/area/end_location = locate(/area/shuttle/icebase_elevator/lower)
+		var/area/start_location = locate(/area/shuttle/icebase_crew_elevator/upper)
+		var/area/end_location = locate(/area/shuttle/icebase_crew_elevator/lower)
 		for(var/mob/M in end_location) // oh dear, stay behind the yellow line kids
 			SPAWN_DBG(1 DECI SECOND) M.gib()
-		start_location.move_contents_to(end_location, /turf/simulated/floor/arctic_elevator_shaft)
+		start_location.move_contents_to(end_location, /turf/floor/arctic_crew_elevator_shaft)
 		location = 0
 
-	for(var/obj/machinery/computer/icebase_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
+	for(var/obj/machinery/computer/icebase_crew_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
+		active = 0
+		C.visible_message("<span class='alert'>The elevator has moved.</span>")
+		C.location = src.location
+
+	return
+
+/obj/machinery/computer/icebase_mine_elevator/attack_hand(mob/user as mob)
+	if(..())
+		return
+	var/dat = "<a href='byond://?src=\ref[src];close=1'>Close</a><BR><BR>"
+
+	if(location)
+		dat += "Elevator Location: Upper level"
+	else
+		dat += "Elevator Location: Lower Level"
+	dat += "<BR>"
+	if(active)
+		dat += "Moving"
+	else
+		dat += "<a href='byond://?src=\ref[src];send=1'>Move Elevator</a><BR><BR>"
+
+	user.Browse(dat, "window=ice_elevator")
+	onclose(user, "ice_elevator")
+	return
+
+/obj/machinery/computer/icebase_mine_elevator/Topic(href, href_list)
+	if(..())
+		return
+	if ((usr.contents.Find(src) || (in_interact_range(src, usr) && istype(src.loc, /turf))) || (issilicon(usr)))
+		src.add_dialog(usr)
+
+		if (href_list["send"])
+			if(!active)
+				for(var/obj/machinery/computer/icebase_mine_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
+					active = 1
+					C.visible_message("<span class='alert'>The elevator begins to move!</span>")
+					playsound(C.loc, "sound/machines/elevator_move.ogg", 100, 0)
+				SPAWN_DBG(5 SECONDS)
+					call_shuttle()
+
+		if (href_list["close"])
+			src.remove_dialog(usr)
+			usr.Browse(null, "window=ice_elevator")
+
+	src.add_fingerprint(usr)
+	src.updateUsrDialog()
+	return
+
+/obj/machinery/computer/icebase_mine_elevator/proc/call_shuttle()
+
+	if(location == 0) // at bottom
+		var/area/start_location = locate(/area/shuttle/icebase_mine_elevator/lower)
+		var/area/end_location = locate(/area/shuttle/icebase_mine_elevator/upper)
+		start_location.move_contents_to(end_location, /turf/floor/plating)
+		location = 1
+	else // at top
+		var/area/start_location = locate(/area/shuttle/icebase_mine_elevator/upper)
+		var/area/end_location = locate(/area/shuttle/icebase_mine_elevator/lower)
+		for(var/mob/M in end_location) // oh dear, stay behind the yellow line kids
+			SPAWN_DBG(1 DECI SECOND) M.gib()
+		start_location.move_contents_to(end_location, /turf/floor/arctic_mine_elevator_shaft)
+		location = 0
+
+	for(var/obj/machinery/computer/icebase_mine_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
 		active = 0
 		C.visible_message("<span class='alert'>The elevator has moved.</span>")
 		C.location = src.location
@@ -663,7 +843,7 @@
 
 		if (href_list["send"])
 			if(!active)
-				for(var/obj/machinery/computer/icebase_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
+				for(var/obj/machinery/computer/icebase_crew_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])
 					active = 1
 					C.visible_message("<span class='alert'>The elevator begins to move!</span>")
 					playsound(C.loc, "sound/machines/elevator_move.ogg", 100, 0)
@@ -687,7 +867,7 @@
 	if(location == 0) // at bottom
 		var/area/start_location = locate(/area/shuttle/biodome_elevator/lower)
 		var/area/end_location = locate(/area/shuttle/biodome_elevator/upper)
-		start_location.move_contents_to(end_location, /turf/simulated/floor/plating)
+		start_location.move_contents_to(end_location, /turf/floor/plating)
 		location = 1
 	else // at top
 		var/area/start_location = locate(/area/shuttle/biodome_elevator/upper)
@@ -695,7 +875,7 @@
 		for(var/mob/M in end_location) // oh dear, stay behind the yellow line kids
 			SPAWN_DBG(1 DECI SECOND) M.gib()
 			bioele_accident()
-		start_location.move_contents_to(end_location, /turf/unsimulated/floor/setpieces/ancient_pit/shaft)
+		start_location.move_contents_to(end_location, /turf/floor/setpieces/ancient_pit/shaft)
 		location = 0
 
 	for(var/obj/machinery/computer/biodome_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])

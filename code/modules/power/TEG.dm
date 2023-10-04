@@ -50,7 +50,7 @@
 /obj/machinery/atmospherics/binary/circulatorTemp
 	name = "hot gas circulator"
 	desc = "It's the gas circulator of a thermoeletric generator."
-	icon = 'icons/obj/atmospherics/pipes.dmi'
+	icon = 'icons/obj/machines/new_grey_teg.dmi'
 	icon_state = "circ1-off"
 	var/obj/machinery/power/generatorTemp/generator = null
 
@@ -382,10 +382,14 @@
 		else if(src.last_pressure_delta >= src.min_circ_pressure)
 			if(src.last_pressure_delta > ONE_ATMOSPHERE)
 				icon_state = "circ[side]-run"
+				var/image/fan_effect = image(src.icon, icon_state = "circ-faneffect", pixel_x = (src.side == LEFT_CIRCULATOR ? 5 : 14), pixel_y = -7)
+				UpdateOverlays(fan_effect, "fan_effect")
 			else
 				icon_state = "circ[side]-slow"
+				UpdateOverlays(null, "fan_effect")
 		else
 			icon_state = "circ[side]-off"
+			UpdateOverlays(null, "fan_effect")
 
 		if(src.is_open_container())
 			if(src.GetOverlayImage("open")) return 1
@@ -403,7 +407,7 @@
 			src.UpdateOverlays(null, "open")
 
 		if(src.variant_b_active)
-			UpdateOverlays(image('icons/obj/atmospherics/pipes.dmi', "circ[side]-o1"), "variant")
+			UpdateOverlays(image('icons/obj/machines/new_grey_teg.dmi', "circ[side]-o1"), "variant")
 		else
 			UpdateOverlays(null, "variant")
 
@@ -529,16 +533,11 @@ datum/pump_ui/circulator_ui
 		return our_circ
 
 
-/obj/machinery/power/monitor
-	name = "Power Monitoring Computer"
-	icon = 'icons/obj/computer.dmi'
-	icon_state = "power"
-	density = 1
-	anchored = 1
 
 /obj/machinery/power/generatorTemp
 	name = "generator"
 	desc = "A high efficiency thermoelectric generator."
+	icon = 'icons/obj/machines/new_grey_teg.dmi'
 	icon_state = "teg"
 	anchored = 1
 	density = 1
@@ -694,15 +693,15 @@ datum/pump_ui/circulator_ui
 		if(status & (NOPOWER))
 			UpdateOverlays(null, "power")
 		else if(status & (BROKEN))
-			UpdateOverlays(image('icons/obj/power.dmi', "teg-err"), "power")
+			UpdateOverlays(image('icons/obj/machines/new_grey_teg.dmi', "teg-err"), "power")
 		else
 			if(lastgenlev != 0)
-				UpdateOverlays(image('icons/obj/power.dmi', "teg-op[lastgenlev]"), "power")
+				UpdateOverlays(image('icons/obj/machines/new_grey_teg.dmi', "teg-op[lastgenlev]"), "power")
 			else
 				UpdateOverlays(null, "power")
 
 		if(src.variant_b)
-			UpdateOverlays(image('icons/obj/power.dmi', "teg_var"), "variant")
+			UpdateOverlays(image('icons/obj/machines/new_grey_teg.dmi', "teg_var"), "variant")
 		else
 			UpdateOverlays(null, "variant")
 
@@ -721,7 +720,7 @@ datum/pump_ui/circulator_ui
 
 			// Use single light if we are variant b (only has one light) OR if we are ONLY in the APC draining state
 			var/one_light = src.variant_b || ( max_warning == WARNING_APC_DRAINING )
-			var/image/warning = image('icons/obj/power.dmi', one_light ? "tegv_lights" : "teg_lights", dir=warning_side)
+			var/image/warning = image('icons/obj/machines/new_grey_teg.dmi', one_light ? "tegv_lights" : "teg_lights", dir=warning_side)
 			if(max_warning > WARNING_5MIN)
 				warning.color = "#ff0000"
 				warning_light_desc = "<br><span class='alert'>The power emergency lights are flashing.</span>"
@@ -1018,7 +1017,7 @@ datum/pump_ui/circulator_ui
 						shake_camera(M, 3, 16)
 						M.changeStatus("weakened", 1 SECOND)
 					for (var/atom/A in range(rand(1,3), src.loc))
-						if (istype(A, /turf/simulated))
+						if (issimulatedturf(A))
 							A.pixel_x = rand(-1,1)
 							A.pixel_y = rand(-1,1)
 					grump -= 30
@@ -1323,7 +1322,7 @@ Present 	Unscrewed  Connected 	Unconnected		Missing
 /obj/item/teg_semiconductor
 	name = "Prototype Semiconductor"
 	desc = "A large rectangulr plate stamped with 'Prototype Thermo-Electric Generator Semiconductor.  If found please return to NanoTrasen.'"
-	icon = 'icons/obj/power.dmi'
+	icon = 'icons/obj/machines/new_grey_teg.dmi'
 	icon_state = "semi"
 
 /obj/machinery/atmospherics/unary/furnace_connector
@@ -1478,7 +1477,7 @@ Present 	Unscrewed  Connected 	Unconnected		Missing
 	icon_state = "computer_generic"
 
 	name = "Pump control computer"
-	frequency = 1225
+	frequency = FREQ_ATMOS
 
 	var/list/pump_infos
 

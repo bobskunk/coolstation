@@ -157,6 +157,12 @@ TYPEINFO(/atom)
 		if (temp_flags & (HAS_BAD_SMOKE))
 			ClearBadsmokeRefs(src)
 
+		//I can't tell if there's actually GC issues with maptext because "chat_text" is also a var name in a dozen different places
+		//but fuck me why isn't this cleared centrally, lads.
+		if (chat_text)
+			qdel(chat_text)
+			chat_text = null
+
 		fingerprintshidden = null
 		tag = null
 
@@ -197,6 +203,16 @@ TYPEINFO(/atom)
 	*/
 	proc/is_open_container()
 		return flags & OPENCONTAINER
+
+	// and for easy open/close...
+	proc/open_container()
+		flags |= OPENCONTAINER
+
+	proc/close_container()
+		flags &= ~OPENCONTAINER
+
+	proc/toggle_container()
+		flags ^= ~OPENCONTAINER
 
 	proc/transfer_all_reagents(var/atom/A as turf|obj|mob, var/mob/user as mob)
 		// trans from src to A
@@ -239,7 +255,7 @@ TYPEINFO(/atom)
 /atom/proc/deserialize_postprocess()
 	return
 
-/atom/proc/ex_act(var/severity=0,var/last_touched=0)
+/atom/proc/ex_act(severity=0,last_touched=0, epicenter = null)
 	return
 
 /atom/proc/reagent_act(var/reagent_id,var/volume)

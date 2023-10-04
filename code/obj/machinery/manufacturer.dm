@@ -65,7 +65,7 @@
 	var/list/text_bad_output_adjective = list("janky","crooked","warped","shoddy","shabby","lousy","crappy","shitty")
 	var/obj/item/card/id/scan = null
 	var/temp = null
-	var/frequency = 1149
+	var/frequency = FREQ_PDA
 	var/datum/radio_frequency/transmit_connection = null
 	var/net_id = null
 
@@ -199,14 +199,14 @@
 
 	ex_act(severity)
 		switch(severity)
-			if(1.0)
+			if(OLD_EX_SEVERITY_1)
 				for(var/atom/movable/A as mob|obj in src)
 					A.set_loc(src.loc)
 					A.ex_act(severity)
 				src.take_damage(rand(100,120))
-			if(2.0)
+			if(OLD_EX_SEVERITY_2)
 				src.take_damage(rand(40,80))
-			if(3.0)
+			if(OLD_EX_SEVERITY_3)
 				src.take_damage(rand(20,40))
 		return
 
@@ -508,7 +508,7 @@
 		dat +="<HR><B>Scanned Card:</B> <A href='?src=\ref[src];card=1'>([src.scan])</A><BR>"
 		if(scan)
 			var/datum/data/record/account = null
-			account = FindBankAccountByName(src.scan.registered)
+			account = FindBankAccountById(src.scan.registered_id)
 			if (account)
 				dat+="<B>Current Funds</B>: [account.fields["current_money"]] Credits<br>"
 		dat+= src.temp
@@ -788,11 +788,11 @@
 					return
 				else
 					src.temp = null
-				if (src.scan.registered in FrozenAccounts)
+				if (src.scan.registered_id in FrozenAccounts)
 					boutput(usr, "<span class='alert'>Your account cannot currently be liquidated due to active borrows.</span>")
 					return
 				var/datum/data/record/account = null
-				account = FindBankAccountByName(src.scan.registered)
+				account = FindBankAccountById(src.scan.registered_id)
 				if (account)
 					var/quantity = 1
 					quantity = max(0, input("How many units do you want to purchase?", "Ore Purchase", null, null) as num)
@@ -1071,7 +1071,7 @@
 			var/obj/item/card/id/ID = I
 			boutput(usr, "<span class='notice'>You swipe the ID card in the card reader.</span>")
 			var/datum/data/record/account = null
-			account = FindBankAccountByName(ID.registered)
+			account = FindBankAccountById(ID.registered_id)
 			if(account)
 				var/enterpin = input(usr, "Please enter your PIN number.", "Card Reader", 0) as null|num
 				if (enterpin == ID.pin)
@@ -1120,7 +1120,7 @@
 			src.output_target = O.loc
 			boutput(usr, "<span class='notice'>You set the manufacturer to output on top of [O]!</span>")
 
-		else if (istype(over_object,/turf/simulated/floor/) || istype(over_object,/turf/unsimulated/floor/))
+		else if (istype(over_object,/turf/floor/))
 			src.output_target = over_object
 			boutput(usr, "<span class='notice'>You set the manufacturer to output to [over_object]!</span>")
 
@@ -1881,7 +1881,7 @@
 			else
 				return M.loc
 
-		else if (istype(src.output_target,/turf/simulated/floor/) || istype(src.output_target,/turf/unsimulated/floor/))
+		else if (istype(src.output_target,/turf/floor/))
 			return src.output_target
 
 		else

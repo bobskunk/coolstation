@@ -202,7 +202,7 @@
 				boutput(owner, __red("You need to start on the [station_or_ship()]!"))
 				return
 
-			if (istype(T,/turf/unsimulated/))
+			if (!issimulatedturf(T))
 				boutput(owner, "<span class='alert'>This kind of tile cannot support a blob.</span>")
 				return
 
@@ -391,7 +391,7 @@
 		var/extra_spreads = round(owner.multi_spread / 100) + (prob(owner.multi_spread % 100) ? 1 : 0)
 		if (extra_spreads)
 			var/list/spreadability = list()
-			for (var/turf/simulated/floor/Q in view(7, owner))
+			for (var/turf/floor/Q in view(7, owner))
 				if (locate(/obj/blob) in Q)
 					continue
 				var/obj/blob/B3 = Q.can_blob_spread_here(null, null, isadmin(owner))
@@ -835,7 +835,7 @@
 		if (!tutorial_check("bridge", T))
 			return 1
 
-		var/turf/simulated/floor/blob/B = T.ReplaceWith(/turf/simulated/floor/blob, FALSE, TRUE, FALSE)
+		var/turf/floor/blob/B = T.ReplaceWith(/turf/floor/blob, FALSE, TRUE, FALSE)
 		B.setOvermind(owner)
 		src.deduct_bio_points()
 		src.do_cooldown()
@@ -1105,7 +1105,7 @@
 	#ifndef Z3_IS_A_STATION_LEVEL
 		logTheThing("debug", src, null, "A blob tried making a level transfer on a map that doesn't support it, what?")
 		return 1
-	#endif
+	#else
 		var/turf/turf_z3
 		if (!turf_z1)
 			turf_z1 = get_turf(owner)
@@ -1160,6 +1160,7 @@
 		src.deduct_bio_points()
 		src.do_cooldown()
 		owner.playsound_local(owner.loc, "sound/voice/blob/blobspread[rand(1, 6)].ogg", 80, 1)
+	#endif
 
 //////////////
 // UPGRADES //

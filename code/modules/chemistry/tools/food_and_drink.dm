@@ -211,7 +211,7 @@
 							plastic_spoon.break_utensil(M)
 							utensil = null
 
-					if (!utensil && (needfork || needspoon))
+					if (!utensil && (needfork || needspoon) && !user.traitHolder.hasTrait("greedy_beast"))
 						if (needfork && needspoon)
 							boutput(M, "<span class='alert'>You need a fork or spoon to eat [src]!</span>")
 						else if (needfork)
@@ -496,12 +496,12 @@
 	flags = FPRINT | TABLEPASS | OPENCONTAINER | SUPPRESSATTACK
 	rc_flags = RC_FULLNESS | RC_VISIBLE | RC_SPECTRO
 	var/gulp_size = 5 //This is now officially broken ... need to think of a nice way to fix it.
-	var/splash_all_contents = 1
-	doants = 0 //no ants until updated
+	var/splash_all_contents = 0 //making an executive decision to *not* splash everything out by default just because you clicked your beer on something else by accident
+	doants = 0
 	throw_speed = 1
 	var/can_recycle = 1
 	var/can_chug = 1
-	//breaking
+		//breaking
 	var/breakable = 0 //can it be broken in part?
 	var/broken = 0 //useless, jagged opening or cracked, but it's still mostly intact (stabby bottles)
 	var/smashable = 0 //can it be totally destroyed?
@@ -515,6 +515,9 @@
 	var/shakes = 0 //soda cans and bottles can get shaken. might have use for shaker, too... (wanky showoff bartenders)
 	//var/leaky = 0 //a crack or hole, leaking reagents...
 
+//okay well update_gulp_size was already broken when i got here
+//let's not call it when it does nothing, at least for now
+/*
 	New()
 		..()
 		update_gulp_size()
@@ -523,12 +526,13 @@
 		//gulp_size = round(reagents.total_volume / 5)
 		//if (gulp_size < 5) gulp_size = 5
 		return
+*/
 
 	on_reagent_change()
-		update_gulp_size()
-		if (!src.is_open_container())
-			return
-		doants = src.reagents && src.reagents.total_volume > 0
+		..()
+		//update_gulp_size()  //broken, so commenting it out here too
+		if (is_open_container(src))
+			doants = src.reagents && src.reagents.total_volume > 0
 		return
 
 	on_spin_emote(var/mob/living/carbon/human/user as mob)
@@ -579,10 +583,10 @@
 	//Wow, we copy+pasted the heck out of this... (Source is chemistry-tools dm)
 	attack_self(mob/user as mob)
 		if (src.splash_all_contents)
-			boutput(user, "<span class='notice'>You try to be more careful about spilling [src].</span>")
+			boutput(user, "<span class='notice'>You get more careful about holding [src].</span>")
 			src.splash_all_contents = 0
 		else
-			boutput(user, "<span class='notice'>You stop caring about spilling [src] so much.</span>")
+			boutput(user, "<span class='notice'>You get ready to dump all of [src].</span>")
 			src.splash_all_contents = 1
 		return
 	//shoving all sorts of shit into here
@@ -593,24 +597,25 @@
 			var/obj/item/reagent_containers/food/drinks/bottle/W = src
 			if (W.broken)
 				return //we only fight with booze bottles i suppose
+
 		if (!src.reagents || !src.reagents.total_volume)
 			boutput(user, "<span class='alert'>Nothing left in [src], oh no!</span>")
-			return 0
-		if (!src.is_open_container())
+			return
+
+		if (!src.is_open_container()) //unopened cans, bottles with caps and corks in, etc.
 			user.show_text("This thing isn't even open!", "red")
 			return 0
-		else
 
-			//harmsmash, drink, and forced drink
-			if (iscarbon(M) || ismobcritter(M))
-				if (user.a_intent == INTENT_HARM)
-					src.smash_on_thing()
+		if (user.a_intent == INTENT_HARM)
+			src.smash_on_thing()
+			return
 
-				else if (M == user)
-					M.visible_message("<span class='notice'>[M] takes a sip from [src].</span>")
-				else
-					user.visible_message("<span class='alert'>[user] attempts to force [M] to drink from [src].</span>")
-					logTheThing("combat", user, M, "attempts to force [constructTarget(M,"combat")] to drink from [src] [log_reagents(src)] at [log_loc(user)].")
+		if (iscarbon(M) || ismobcritter(M))
+			if (M == user)
+				M.visible_message("<span class='notice'>[M] takes a sip from [src].</span>")
+			else
+				user.visible_message("<span class='alert'>[user] attempts to force [M] to drink from [src].</span>")
+				logTheThing("combat", user, M, "attempts to force [constructTarget(M,"combat")] to drink from [src] [log_reagents(src)] at [log_loc(user)].")
 
 					if (!do_mob(user, M))
 						if (user && ismob(user))
@@ -730,17 +735,22 @@
 				can_mousedrop = 1
 			return
 
-	throw_impact(atom/A, datum/thrown_thing/thr)
+		throw_impact(atom/A, datum/thrown_thing/thr)
 		..()
-		if (prob(30))
-			src.splashreagents(A)
+		//want to try to splash it (if open) or break it (if breakable)
+		//if (prob(30))
+		//	src.splashreagents(A)
 
 	// fluid handling: (accepts /obj/fluid) clickdrag to fill. fill from any fluid you want until full.
 	// called from mousedrop
+	// just putting the code up here in preparation, currently not called by anything
+
+	//BIG NEW SHIT
+
 	proc/scoopfluid(var/obj/fluid/F)
-		//check if there's anything to even scoop and clean it up if not
+		//check if there's anything to even scoop
 		if (!F.group || !F.group.reagents.total_volume)
-			boutput(usr, "<span class='alert'>[F] is empty??</span>")
+			boutput(usr, "<span class='alert'>[F] is empty. (this is a bug, whooops!)</span>")
 			F.removed()
 			return
 		//check if we're already full
@@ -750,12 +760,11 @@
 		//prep the fluid
 		F.group.reagents.skip_next_update = 1
 		F.group.update_amt_per_tile()
-		//get safe, non-overfilling amount and transfer it
+		//get safe amount and transfer
 		var/amt = min(F.group.amt_per_tile, reagents.maximum_volume - reagents.total_volume)
 		boutput(usr, "<span class='notice'>You fill [src] with [amt] units of [F].</span>")
-		F.group.drain(F, amt / F.group.amt_per_tile, src) // drain uses weird units (apparently)
-
-	// fluid handling: (accepts /atom) and splashes contents onto thing
+		F.group.drain(F, amt / F.group.amt_per_tile, src) // drain uses weird units
+// fluid handling: (accepts /atom) and splashes contents onto thing
 	// deliberate pourouts, broken bottles and glasses, etc.
 	// this might be generalizable with tweaks, but accepts target. user and splashamt optional
 	// pass splashamount=-1 if you want to splash all reagents and clear it
@@ -980,6 +989,8 @@
 			src.smash(target,user)
 			return 1
 
+	//END OF NEW SHIT
+
 	/*
 	afterattack(obj/target, mob/user , flag)
 		if (istype(target, /obj/reagent_dispensers)) //A dispenser. Transfer FROM it TO us.
@@ -1107,25 +1118,35 @@
 	flags = FPRINT | TABLEPASS | SUPPRESSATTACK
 	var/label = "none" // Look in bottle.dmi for the label names
 	var/labeled = 0 // For writing on the things with a pen
+	var/cap = null // same as label names in bottle.dmi- they match
+	var/cap_type = null	//"cap","cork","screw","champagne" for determining what comes off and what can go back on
+						//also for consideration: "rag"
 	//var/static/image/bottle_image = null
 	var/static/image/image_fluid = null
 	var/static/image/image_label = null
+	var/static/image/image_cap = null
 	var/static/image/image_ice = null
 	var/static/image/image_cap = null
 	var/ice = null
-	breakable = 1
-	smashable = 1
-	var/popped = 0 //for wine/champagne and anything else with a cork that might make it obvious it's been opened
+	var/unbreakable = 0 //either plastic or too-thick glass or aluminum or whatever
+	//handle smashing, handle breaking
+	var/broken = 0 //currently broken and unable to hold anything
 	var/bottle_style = "clear"
 	var/fluid_style = "bottle"
 	var/alt_filled_state = null // does our icon state gain a 1 if we've got fluid? put that 1 in this here var if so!
 	var/fluid_underlay_shows_volume = FALSE // determines whether this bottle is special and shows reagent volume
+	var/weakness = 0 //the weaker the bottle, the greater the risk of shattering completely (was var/shatter)
+	var/sturdiness = 0 //resistance to shattering (i.e. thin drinking glass is 0, thick glass bottle of bojacks is 2, something like a carafe is 1...)
 	initial_volume = 50
 	g_amt = 60
 
 	New()
 		..()
-		src.flags &= ~OPENCONTAINER
+		if (!src.cap)
+			src.cap = src.label //quick and dirty
+		//if (cap_type)
+			//src.close_container()
+			//old thing: src.flags &= ~OPENCONTAINER //whatever
 		src.update_icon()
 
 	on_reagent_change()
@@ -1135,7 +1156,7 @@
 	unpooled()
 		..()
 		src.broken = 0
-		src.shatter = 0
+		src.weakness = 0
 		src.labeled = 0
 		src.update_icon()
 
@@ -1422,21 +1443,23 @@
 					//src.image_label = image('icons/obj/foodNdrink/bottle.dmi')
 				//src.image_label.icon_state = "label-broken-[src.label]"
 				src.UpdateOverlays(src.image_label, "label")
+				src.UpdateOverlays(null, "cap")
 			else
 				src.UpdateOverlays(null, "label")
+				src.UpdateOverlays(null, "cap")
 		else
 			//reagent level/color
 			if (!src.reagents || src.reagents.total_volume <= 0) //Fix for cannot read null/volume. Also FUCK YOU REAGENT CREATING FUCKBUG!
-				src.icon_state = "bottle-[src.bottle_style]"
-			else if(!src.fluid_underlay_shows_volume)
+				src.icon_state = "bottle-[src.bottle_style]"/*
+			else if(!src.fluid_underlay_shows_volume) // this seems so wrong, if we're NOT underlay volume showing, why are we generating an underlay?
 				src.icon_state = "bottle-[src.bottle_style][src.alt_filled_state]"
 				ENSURE_IMAGE(src.image_fluid, src.icon, "fluid-[src.fluid_style]")
 				//if (!src.image_fluid)
 					//src.image_fluid = image('icons/obj/foodNdrink/bottle.dmi')
 				var/datum/color/average = reagents.get_average_color()
 				image_fluid.color = average.to_rgba()
-				src.underlays += src.image_fluid
-			else
+				src.underlays += src.image_fluid*/
+			else if(src.fluid_underlay_shows_volume)
 				if (reagents.total_volume)
 					var/fluid_state = round(clamp((src.reagents.total_volume / src.reagents.maximum_volume * 3 + 1), 1, 3))
 					if (!src.image_fluid)
@@ -1456,7 +1479,28 @@
 				src.UpdateOverlays(src.image_label, "label")
 			else
 				src.UpdateOverlays(null, "label")
-			//caps and corks
+			//caps and corks and wrappers oh my
+			if (!src.is_open_container()) //check for seal
+				if (src.popped) //is it popped wine/champagne?
+					ENSURE_IMAGE(src.image_cap, src.icon, "cork-[src.cap]") //hastily recorked, unglamorous
+					src.UpdateOverlays(src.image_cap, "cap")
+				else
+					ENSURE_IMAGE(src.image_cap, src.icon, "cap-[src.cap]") //easy peasy, everyone gets standard cap
+					src.UpdateOverlays(src.image_cap, "cap")
+			else
+				if (src.popped)
+					ENSURE_IMAGE(src.image_cap, src.icon, "open-[src.cap]") //torn seal wrapper with no cork
+					src.UpdateOverlays(src.image_cap, "cap")
+				//temporary code check!
+				else if (!src.alphatest_closecontainer) //if this is an open container AND has a cap AND isn't openable, then draw as normal
+					ENSURE_IMAGE(src.image_cap, src.icon, "cap-[src.cap]") //easy peasy, everyone gets standard cap
+					src.UpdateOverlays(src.image_cap, "cap")
+				//end temporary code check!
+				else
+					src.UpdateOverlays(null, "cap")
+
+			/*
+				//OLD caps and corks icon handling (i can improve broth)
 			if (src.cap_type) //does this thing have a cap?
 				if (!src.is_open_container()) //is it sealed?
 					if (!src.popped) //is it unpopped?
@@ -1472,19 +1516,117 @@
 					else
 						ENSURE_IMAGE(src.image_cap, src.icon, "cap-[src.label]")
 						src.UpdateOverlays(null, "cap") //no cap at all
+
+			*/
+
 			// Ice is implemented below; we just need sprites from whichever poor schmuck that'll be willing to do all that ridiculous sprite work
 			if (src.reagents.has_reagent("ice"))
 				ENSURE_IMAGE(src.image_ice, src.icon, "ice-[src.fluid_style]")
 				src.underlays += src.image_ice
 		signal_event("icon_updated")
 
+
 	proc/breakbottle (var/atom/A,var/mob/user,quiet,splashamount)
+
+	attackby(obj/item/W as obj, mob/user as mob)
+		if (istype(W, /obj/item/pen) && !src.labeled)
+			var/t = input(user, "Enter label", "Label", src.name) as null|text
+			if(t && t != src.name)
+				phrase_log.log_phrase("bottle", t, no_duplicates=TRUE)
+			t = copytext(strip_html(t), 1, 24)
+			if (isnull(t) || !length(t) || t == " ")
+				return
+			if (!in_interact_range(src, user) && src.loc != user)
+				return
+
+			src.name = t
+			src.labeled = 1
+		else
+			..()
+			return
+
+	attack(target as mob, mob/user as mob)
+		if (src.broken && !src.unbreakable)
+			force = 5.0
+			throwforce = 10.0
+			throw_range = 5
+			w_class = W_CLASS_SMALL
+			stamina_damage = 15
+			stamina_cost = 15
+			stamina_crit_chance = 50
+			tooltip_rebuild = 1
+
+			if (src.weakness >= rand(2,12))
+				var/turf/U = user.loc
+				user.visible_message("<span class='alert'>[src] shatters completely!</span>")
+				playsound(U, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
+				var/obj/item/raw_material/shard/glass/G = new()
+				G.set_loc(U)
+				qdel(src)
+				if (prob (25))
+					user.visible_message("<span class='alert'>The broken shards of [src] slice up [user]'s hand!</span>")
+					playsound(U, "sound/impact_sounds/Slimy_Splat_1.ogg", 50, 1)
+					var/damage = rand(5,15)
+					random_brute_damage(user, damage)
+					take_bleeding_damage(user, null, damage)
+			else
+				src.weakness++
+				user.visible_message("<span class='alert'><b>[user]</b> [pick("shanks","stabs","attacks")] [target] with the broken [src]!</span>")
+				logTheThing("combat", user, target, "attacks [constructTarget(target,"combat")] with a broken [src] at [log_loc(user)].")
+				playsound(target, "sound/impact_sounds/Flesh_Stab_1.ogg", 60, 1)
+				var/damage = rand(1,10)
+				random_brute_damage(target, damage)//shiv that nukie/secHoP
+				take_bleeding_damage(target, null, damage)
+		..()
+
+	proc/smash_on_thing(mob/user as mob, atom/target as turf|obj|mob) // why did I have this as a proc on tables?  jeez, babbycoder haine, you really didn't know shit about nothin
+		if (!user || !target || user.a_intent != "harm" || issilicon(user))
+			return
+
+		if (src.unbreakable)
+			boutput(user, "[src] bounces uselessly off [target]!")
+			return
+
+		var/turf/U = user.loc
+		var/damage = rand(5,15)
+		var/success_prob = 25
+		var/hurt_prob = 50
+
+		if (user.reagents && user.reagents.has_reagent("ethanol") && user.mind && user.mind.assigned_role == "Bartender")
+			success_prob = 75
+			hurt_prob = 25
+
+		else if (user.mind && user.mind.assigned_role == "Bartender")
+			success_prob = 50
+			hurt_prob = 10
+
+		else if (user.reagents && user.reagents.has_reagent("ethanol"))
+			success_prob = 75
+			hurt_prob = 75
+
+		//have to do all this stuff anyway, so do it now
+		playsound(U, "sound/impact_sounds/Glass_Shatter_[rand(1,3)].ogg", 100, 1)
+		var/obj/item/raw_material/shard/glass/G = new()
+		G.set_loc(U)
+
+		if (src.reagents)
+			src.reagents.reaction(U)
+
+		DEBUG_MESSAGE("[src].smash_on_thing([user], [target]): success_prob [success_prob], hurt_prob [hurt_prob]")
+		if (!src.broken && prob(success_prob))
+			user.visible_message("<span class='alert'><b>[user] smashes [src] on [target], shattering it open![prob(50) ? " [user] looks like they're ready for a fight!" : " [src] has one mean edge on it!"]</span>")
+			src.item_state = "broken_beer" // shattered beer inhand sprite
+			user.update_inhands()
+			src.broken = 1
+			/*
 		src.item_state = "broken_beer" // shattered beer inhand sprite
 		src.flags |= OPENCONTAINER //fuck
 		src.popped = 1 //it
 		src.broken = 1 //up
 		src.splashreagents(A,user,"-1") //splash contents on thing it broke on
 		src.update_icon() // handles reagent holder stuff
+			*/
+			src.update_icon() // handles reagent holder stuff
 
 /obj/item/reagent_containers/food/drinks/bottle/soda //for soda bottles and bottles from the glass recycler specifically
 	breakable = 1
@@ -1511,6 +1653,8 @@
 	var/obj/item/cocktail_stuff/drink_umbrella/umbrella = null
 	var/obj/item/cocktail_stuff/in_glass = null
 	initial_volume = 50
+	var/smashed = 0
+	shard_amt = 1
 	smashable = 1
 	//breakable = 1 //need to have cracked iconstates before this will work
 
@@ -1884,6 +2028,74 @@
 			onRestart()
 		return
 
+/datum/action/bar/icon/chug_pills
+	duration = 0.5 SECONDS
+	id = "chugging"
+	var/mob/pillholder
+	var/mob/target
+	var/obj/item/storage/pill_bottle/pillbottle
+
+	New(mob/Target, obj/item/storage/pill_bottle/PillBottle)
+		..()
+		target = Target
+		pillbottle = PillBottle
+		icon = pillbottle.icon
+		icon_state = pillbottle.icon_state
+
+	proc/checkContinue()
+		if (pillbottle.contents.len <= 0 || !isalive(pillholder) || !pillholder.find_in_hand(pillbottle))
+			return FALSE
+		if ((target.reagents?.maximum_volume-target.reagents?.total_volume) <= 0) // we're fuckin full, slosh slosh,
+			target.visible_message("[target.name] [pick("fucken HURLS.","barfs it back up!","vomits bigtime!","pukes.")]")
+			target.vomit()
+			return FALSE
+		return TRUE
+
+	onStart()
+		..()
+		pillholder = src.owner
+		loopStart()
+		if(pillholder == target)
+			pillholder.visible_message("[pillholder.name] starts chugging the [pillbottle.name]!")
+		else
+			pillholder.visible_message("[pillholder.name] starts forcing [target.name] to chug the [pillbottle.name]!")
+		logTheThing("combat", pillholder, target, "[pillholder == target ? "starts chugging from" : "makes [constructTarget(target,"combat")] chug from"] [pillbottle] [log_reagents(pillbottle)] at [log_loc(target)].")
+		return
+
+	loopStart()
+		..()
+		if(!checkContinue()) interrupt(INTERRUPT_ALWAYS)
+		return
+
+	onUpdate()
+		..()
+		if(!checkContinue()) interrupt(INTERRUPT_ALWAYS)
+		return
+
+	onInterrupt(flag)
+		..()
+		target.visible_message("[target.name] couldn't drink everything in the [pillbottle.name].")
+
+	onEnd()
+
+		if (pillbottle.contents.len) //Take a sip
+			for(var/obj/item/reagent_containers/pill/P in pillbottle)
+				P.attack_self(target)
+				break
+			var/clip = rand(1,4)
+			playsound(target.loc,"sound/items/pills_[clip].ogg", 30, 1)
+
+			eat_twitch(target)
+
+		if(pillbottle.contents.len <= 0)
+			..()
+			target.visible_message("[target.name] chugged everything in the [pillbottle.name]!")
+		else if(!checkContinue())
+			..()
+			target.visible_message("[target.name] stops chugging.")
+		else
+			onRestart()
+		return
 
 /* =================================================== */
 /* -------------------- Sub-Types -------------------- */
@@ -2203,7 +2415,7 @@
 	item_state = "carafe-eng"
 	initial_volume = 100
 	can_chug = 1
-	smashed = 0
+	var/smashed = 0
 	shard_amt = 2
 	//insulated = 1
 	var/image/fluid_image
@@ -2320,6 +2532,92 @@
 	icon_state = "golden_cocktailshaker"
 
 /obj/item/cap
+	name = "bottle cap"
+	desc = "A small metal lid for a bottled refreshment. It's slightly bent from being pried off."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "bottlecap-red" //eventually i'll
+	w_class = W_CLASS_TINY
+	rand_pos = 1
+
+/obj/item/cap/cork
+	name = "cork"
+	desc = "A small cork for a wine bottle."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "cork"
+	rand_pos = 1
+
+/obj/item/cap/screwtop
+	name = "bottle cap"
+	desc = "A screw-on cap for a bottle." //this can include bottle caps for sodas probably
+	icon = 'icons/obj/foodNdrink/bottle.dmi' //same as standard cap, will apply offsets to image overlay and just use the same
+	icon_state = "screwtop"
+	rand_pos = 1
+
+/obj/item/cap/champcork
+	name = "champagne cork"
+	desc = "A distinctive cork for a champagne bottle."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "champcork"
+	rand_pos = 1
+
+/obj/item/bottleopener
+	name = "bottle opener"
+	desc = "A basic bottle opener. Pops off caps and pierces cans."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "opener"
+	var/does_bottles = 1
+	var/does_wine = 0
+	var/does_cans = 1
+/obj/item/bottleopener/corkscrew
+	name = "corkscrew"
+	desc = "A really helpful bartender's tool! Opens capped bottles, pierces cans, and pulls wine corks."
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "corkscrew"
+	does_wine = 1
+
+	get_desc(var/dist, var/mob/user)
+		if (user.mind?.assigned_role == "Bartender")
+			. = " Hope you don't lose it!"
+		else
+			. = " They probably won't miss it..."
+
+/obj/item/bottleopener/mounted
+	name = "mounted bottle opener"
+	desc = "One of those permanently mounted bottle openers. Handy for opening capped bottles, plus you'll never lose track of it!"
+	anchored = 1
+	icon = 'icons/obj/foodNdrink/bottle.dmi'
+	icon_state = "opener-mounted"
+	flags = NOSPLASH
+	does_wine = 0
+	does_cans = 0
+
+	attackby(obj/item/W as obj, mob/user as mob) //add clumsiness handling, crack open that cold one in a very literal way
+		if (istype(W, /obj/item/reagent_containers/food/drinks/bottle))
+			var/obj/item/reagent_containers/food/drinks/bottle/B = W //temporary handling until i get the other stuff cleanly written
+			//like i'm gonna go back to null instead of none but that's just because of some other label-style handling at the moment
+			if (!(B.cap == "none"))
+				B.cap = "none"
+				playsound(user, "sound/items/coindrop.ogg", 50, 1) //temporary
+				B.update_icon()
+				boutput(user, "You pop the top on [B], even though you could already drink from it somehow!")
+			else if (B.cap == "none")
+				boutput(user, "You realize [B] is already cracked open!") //temporary handling until i get the other stuff cleanly written
+				/* egh this goes back in after i have open container handling and etc.
+				user.visible_message("<b>[user]</b> cracks open a [B] with the [src].", "You crack open a [B] with the [src].")
+				var/obj/item/cap/C = new/obj/item/cap
+				if(B.cap)
+					C.icon_state = "cap-[B.cap]"
+				C.set_loc(src.loc) //leave it on the ground
+				//better yet, chance to send flying...
+				//or maybe integrate a trash can thing? whatev
+				playsound(user, "sound/items/coindrop.ogg", 50, 1) //temporary
+				B.update_icon()*/
+			else
+				boutput(user, "\The [src] can't open \the [B]!")
+		else //screwdriver to remove, etc. ?
+			return //no further action
+//
+			/obj/item/cap
 	name = "bottlecap"
 	desc = "A small metal lid for a bottled refreshment. Needs to be pried off, and won't go back on."
 	icon = 'icons/obj/foodNdrink/bottle.dmi'

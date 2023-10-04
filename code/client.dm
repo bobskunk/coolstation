@@ -108,7 +108,10 @@ var/global/list/vpn_ip_checks = list() //assoc list of ip = true or ip = false. 
 
 	var/atom/movable/screen/screenHolder //Invisible, holds images that are used as render_sources.
 
+	///intent-test
 	var/experimental_intents = 0
+	///mouseless-test
+	var/experimental_mouseless = 0
 
 	var/admin_intent = 0
 
@@ -471,7 +474,7 @@ var/global/list/vpn_ip_checks = list() //assoc list of ip = true or ip = false. 
 				//preferences.randomizeLook()
 				preferences.ShowChoices(src.mob)
 				src.mob.Browse(grabResource("html/tgControls.html"),"window=tgcontrolsinfo;size=600x400;title=TG Controls Help")
-				boutput(src, "<span class='alert'>Welcome! You don't have a character profile saved yet, so please create one. If you're new, check out the <a target='_blank' href='https://wiki.ss13.co/Getting_Started#Fundamentals'>quick-start guide</a> for how to play!</span>")
+				boutput(src, "<span class='alert'>Welcome! You don't have a character profile saved yet, so please create one. If you're new, check out the <a target='_blank' href='https://wiki.coolstation.space/wiki/Tutorial'>quick-start guide</a> for how to play!</span>")
 				//hey maybe put some 'new player mini-instructional' prompt here
 				//ok :)
 				is_newbie = 1
@@ -489,7 +492,7 @@ var/global/list/vpn_ip_checks = list() //assoc list of ip = true or ip = false. 
 				changes()
 
 			if (src.holder && rank_to_level(src.holder.rank) >= LEVEL_MOD) // No admin changelog for goat farts (Convair880).
-				admin_changes()
+				admin_changelog()
 #endif
 #if ASS_JAM
 				src.verbs += /client/proc/cmd_ass_day_rules
@@ -1110,6 +1113,10 @@ var/global/curr_day = null
 				if ("aialerts")
 					usr:viewalerts = 0
 
+		//for clicking through disclaimer
+		if ("pregameHTML")
+			usr << browse(pregameHTML, "window=pregameBrowser")
+
 		//A thing for the chat output to call so that links open in the user's default browser, rather than IE
 		if ("openLink")
 			src << link(href_list["link"])
@@ -1434,9 +1441,26 @@ var/global/curr_day = null
 	winset(src, null, "command=\".screenshot auto\"")
 	boutput(src, "<B>Screenshot taken!</B>")
 
-/client/verb/test_experimental_intents()
+/client/verb/test_experimental_mouseless()
 	set hidden = 1
+	set name = "mouseless-test"
+
+	experimental_mouseless = !experimental_mouseless
+
+	if (experimental_mouseless)
+		boutput(src, "<br><B>Experimental mouseless thingy ON. Turn on numlock to use this.</B>")
+		boutput(src, "Use the numpad to target adjacent things in much the same way as roguelikes do. 5 is where you're standing.")
+		boutput(src, "Default targets mobs, then items. ALT targets objects, and CTRL the turf itself.")
+		boutput(src, "<B>It kinda sucks still and disables the examine and sprint hotkeys. The sucking is partially to that.</B>")
+
+	//Mouseless gets applied if needed in /mob/proc/build_keybind_styles
+	src.mob.reset_keymap()
+
+//Making this command visible will make it easier to test and experiment with this. We are a dev server after all!
+/client/verb/test_experimental_intents()
+	set hidden = 0
 	set name = "intent-test"
+	set category = "Commands"
 
 	if (preferences)
 		if (!src.preferences.use_wasd)

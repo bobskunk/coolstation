@@ -101,7 +101,7 @@
 			if (istype(I, /obj/item/device/pda2) && I:ID_card) I = I:ID_card
 			boutput(usr, "<span class='notice'>You swipe the ID card in the card reader.</span>")
 			var/datum/data/record/account = null
-			account = FindBankAccountByName(I:registered)
+			account = FindBankAccountById(I:registered_id)
 			if(account)
 				var/enterpin = input(usr, "Please enter your PIN number.", "Card Reader", 0) as null|num
 				if (enterpin == I:pin)
@@ -162,11 +162,11 @@
 							<BR><A href='?src=\ref[src];purchase=1'>OK</A>"}
 				src.updateUsrDialog()
 				return
-			if (src.scan.registered in FrozenAccounts)
+			if (src.scan.registered_id in FrozenAccounts)
 				boutput(usr, "<span class='alert'>Your account cannot currently be liquidated due to active borrows.</span>")
 				return
 			var/datum/data/record/account = null
-			account = FindBankAccountByName(src.scan.registered)
+			account = FindBankAccountById(src.scan.registered_id)
 			if (account)
 				var/quantity = 1
 				quantity = input("How many units do you want to purchase? Maximum: 50", "Trader Purchase", null, null) as num
@@ -312,7 +312,7 @@
 			var/datum/commodity/tradetype = most_applicable_trade(src.goods_buy, src.sellitem)
 			if(tradetype)
 				var/datum/data/record/account = null
-				account = FindBankAccountByName(src.scan.registered)
+				account = FindBankAccountById(src.scan.registered_id)
 				if (!account)
 					src.temp = {" [src] looks slightly agitated when he realizes there is no bank account associated with the ID card.<BR>
 								<BR><A href='?src=\ref[src];sell=1'>OK</A>"}
@@ -344,7 +344,7 @@
 					if (istype(I, /obj/item/device/pda2) && I:ID_card) I = I:ID_card
 					boutput(usr, "<span class='notice'>You swipe the ID card in the card reader.</span>")
 					var/datum/data/record/account = null
-					account = FindBankAccountByName(I:registered)
+					account = FindBankAccountById(I:registered_id)
 					if(account)
 						var/enterpin = input(usr, "Please enter your PIN number.", "Card Reader", 0) as null|num
 						if (enterpin == I:pin)
@@ -392,7 +392,7 @@
 		dat +="<B>Scanned Card:</B> <A href='?src=\ref[src];card=1'>([src.scan])</A><BR>"
 		if(scan)
 			var/datum/data/record/account = null
-			account = FindBankAccountByName(src.scan.registered)
+			account = FindBankAccountById(src.scan.registered_id)
 			if (account)
 				dat+="<B>Current Funds</B>: [account.fields["current_money"]] Credits<HR>"
 			else
@@ -522,7 +522,7 @@
 			boutput(user, "<span class='alert'>[src] is dead!</span>")
 			return
 		var/datum/data/record/account = null
-		account = FindBankAccountByName(src.scan.registered)
+		account = FindBankAccountById(src.scan.registered_id)
 		if(!account)
 			boutput(user, "<span class='alert'>[src]There is no account registered with this card!</span>")
 			return
@@ -1479,3 +1479,63 @@
 		pickupdialogue = "heres the goods"
 
 		pickupdialoguefailure = "yeah that works too"
+
+/obj/npc/trader/katya //lone human survivor of ice station fita, has been stuck for days warming donk pockets on a space heater
+	icon = 'icons/misc/critter.dmi'
+	icon_state = "welder"
+	picture = "nio.png"
+	name = "Comrade Katya"
+	trader_area = "/area/diner/hallway"
+	angrynope = "Get real! Get out!"
+	whotext = "I am quartermaster and trading liason for Glacial Mining Outpost Fita. Right now there is nothing I need but a hot meal."
+	hiketolerance = 0
+
+	New()
+		..()
+		//generic ore until i come up with a list
+		/////////////////////////////////////////////////////////
+		//// sell list //////////////////////////////////////////
+		/////////////////////////////////////////////////////////
+		src.goods_sell += new /datum/commodity/ore/uqill(src)
+		src.goods_sell += new /datum/commodity/ore/plasmastone(src)
+		src.goods_sell += new /datum/commodity/ore/bohrum(src)
+		src.goods_sell += new /datum/commodity/ore/cerenkite(src)
+		src.goods_sell += new /datum/commodity/ore/telecrystal(src)
+		/////////////////////////////////////////////////////////
+
+		//generic diner food until i come up with a list
+		/////////////////////////////////////////////////////////
+		//// buy list ///////////////////////////////////////////
+		/////////////////////////////////////////////////////////
+		src.goods_buy += new /datum/commodity/diner/sloppyjoe(src)
+		src.goods_buy += new /datum/commodity/diner/mashedpotatoes(src)
+		src.goods_buy += new /datum/commodity/diner/waffles(src)
+		src.goods_buy += new /datum/commodity/diner/pancake(src)
+		src.goods_buy += new /datum/commodity/diner/meatloaf(src)
+		/////////////////////////////////////////////////////////
+
+		src.whotext += " [pick( "What do you have for me?", "It is a very awful few days.", "Would you care for a donk pocket?", "Please do not open the can.", "Somehow, the lights are still on.")]"
+
+		greeting= {"Good day to you."}
+
+		portrait_setup = "<img src='[resource("images/traders/[src.picture]")]'><HR><B>[src.name]</B><HR>"
+
+		sell_dialogue = "What do you have for me?"
+
+		buy_dialogue = "Please take a look."
+
+		successful_purchase_dialogue = list("I hope this helps you in some way.",
+			"Please come back any time.")
+
+		failed_purchase_dialogue = list("I am sorry, full payment is required for all purchases.",
+			"Maybe you should ask your employer for, hmh, cash advance?")
+
+		failed_sale_dialogue = list("I cannot use this. Just hot food for now.",
+			"Not interested, sorry!")
+
+		successful_sale_dialogue = list("This works. This works. Thank you.",
+			"I can make use of this.")
+
+		pickupdialogue = "Here is what you requested."
+
+		pickupdialoguefailure = "You need to make some kind of purchase first."

@@ -115,6 +115,7 @@
 	var/draining = 0
 	var/queued_drains = 0 // how many tiles to drain on next update?
 	var/turf/last_drain = 0 // tile from which we should try to drain from
+	var/ignore_drain_exit = 0 // marks fluid groups inside the septic tank, which need to be leeched out to the great unseen.
 
 	var/drains_floor = 1
 
@@ -329,7 +330,7 @@
 			var/turf/T
 			for( var/dir in cardinal )
 				T = get_step( F, dir )
-				if (! (istype(T,/turf/simulated/floor) || istype (T,/turf/unsimulated/floor)) ) continue
+				if (!istype(T,/turf/floor)) continue
 				if (T.canpass())
 					if (T.active_liquid && T.active_liquid.group)
 						T.active_liquid.group.join(src)
@@ -558,7 +559,7 @@
 				else
 					var/dirs = 0
 					for (var/dir in cardinal)
-						var/turf/simulated/T = get_step(F, dir)
+						var/turf/T = get_step(F, dir)
 						if (T && T.active_liquid && T.active_liquid.group == F.group)
 							dirs |= dir
 					fluid_ma.icon_state = num2text(dirs)

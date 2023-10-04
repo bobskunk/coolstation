@@ -601,7 +601,7 @@ ABSTRACT_TYPE(/datum/generatorPrefab)
 
 	cave_jeweler
 		dusty = 1
-		maxNum = 1
+		maxNum = 0 //not lore friendly it turns out, RIP
 		probability = 68
 		prefabPath = "assets/maps/prefabs/prefab_cave_jeweler.dmm"
 		prefabSizeX = 20
@@ -622,3 +622,11 @@ ABSTRACT_TYPE(/datum/generatorPrefab)
 		prefabPath = "assets/maps/prefabs/prefab_cave_closet.dmm"
 		prefabSizeX = 4
 		prefabSizeY = 4
+
+	cave_robotics
+		dusty = 1
+		maxNum = 1
+		probability = 60
+		prefabPath = "assets/maps/prefabs/prefab_cave_robotics.dmm"
+		prefabSizeX = 20
+		prefabSizeY = 12

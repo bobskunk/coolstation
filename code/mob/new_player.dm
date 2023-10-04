@@ -121,7 +121,14 @@ mob/new_player
 					src.last_client << browse("", "window=pregameBrowser")
 		return
 
+	verb/show_newnewplayer_screen()
+		set hidden = 0
+		set name = "Show Warning Splash"
+		set category = "Commands"
+		usr << browse(newplayerHTML, "window=pregameBrowser")
+
 	verb/new_player_panel()
+
 		set src = usr
 		if(client)
 			winset(src, "joinmenu.button_charsetup", "is-disabled=false")
@@ -145,9 +152,15 @@ mob/new_player
 			if (client) winset(src, "joinmenu.button_ready", "is-disabled=true;is-visible=false")
 			if (client) winset(src, "joinmenu.button_cancel", "is-disabled=false;is-visible=true")
 			if (client) winset(src, "joinmenu.button_ready_antag", "is-disabled=true")
-		if(pregameHTML && client)
+		//show new player disclaimer to new players
+		if (client.player.rounds_participated < 10)
+			winshow(client, "pregameBrowser", 1)
+			client << browse(newplayerHTML, "window=pregameBrowser")
+		//show pregameHTML if it's available
+		else if(pregameHTML && client)
 			winshow(client, "pregameBrowser", 1)
 			client << browse(pregameHTML, "window=pregameBrowser")
+		//if pregameHTML is not available, show blank screen until pregameHTML is generated (which will send a new command to browse upon completion)
 		else if(client)
 			winshow(src.last_client, "pregameBrowser", 0)
 			src.last_client << browse("", "window=pregameBrowser")
@@ -524,25 +537,58 @@ a.latejoin-card:hover {
 		if (ticker.mode && !istype(ticker.mode, /datum/game_mode/construction) && !istype(ticker.mode,/datum/game_mode/battle_royale) && !istype(ticker.mode,/datum/game_mode/football) )
 			dat += {"<div class='fuck'><table class='latejoin'><tr><th colspan='2'>Command/Security</th></tr>"}
 			for(var/datum/job/command/J in job_controls.staple_jobs)
-				dat += LateJoinLink(J)
+				if (!J.department || J.department == "security")
+					dat += LateJoinLink(J)
 			for(var/datum/job/security/J in job_controls.staple_jobs)
 				dat += LateJoinLink(J)
 			//dat += "</table></td>"
 
 			dat += {"<tr><td colspan='2'>&nbsp;</td></tr><tr><th colspan='2'>Research</th></tr>"}
+			for(var/datum/job/command/J in job_controls.staple_jobs)
+				if (J.department == "research")
+					dat += LateJoinLink(J)
+					break //one head per department
 			for(var/datum/job/research/J in job_controls.staple_jobs)
 				dat += LateJoinLink(J)
+			for(var/datum/job/medical/J in job_controls.staple_jobs)
+				if (J.department == "research")
+					dat += LateJoinLink(J)
 			//dat += "</table></td>"
 
 			//dat += {"<td valign="top"><table>"}
 			dat += {"<tr><td colspan='2'>&nbsp;</td></tr><tr><th colspan='2'>Engineering</th></tr>"}
+			for(var/datum/job/command/J in job_controls.staple_jobs)
+				if (J.department == "engineering")
+					dat += LateJoinLink(J)
+					break
 			for(var/datum/job/engineering/J in job_controls.staple_jobs)
 				dat += LateJoinLink(J)
-			dat += {"</table></div><div class='fuck'><table class='latejoin'><tr><th colspan='2'>Civilian</th></tr>"}
 
-			for(var/datum/job/civilian/J in job_controls.staple_jobs)
+			dat += {"<tr><td colspan='2'>&nbsp;</td></tr><tr><th colspan='2'>Logistics</th></tr>"}
+			for(var/datum/job/command/J in job_controls.staple_jobs)
+				if (J.department == "logistics")
+					dat += LateJoinLink(J)
+					break
+			for(var/datum/job/logistics/J in job_controls.staple_jobs)
 				dat += LateJoinLink(J)
 
+			//start of next column
+			dat += {"</table></div><div class='fuck'><table class='latejoin'><tr><th colspan='2'>Medical</th></tr>"}
+			for(var/datum/job/command/J in job_controls.staple_jobs)
+				if (J.department == "medical")
+					dat += LateJoinLink(J)
+					break
+			for(var/datum/job/medical/J in job_controls.staple_jobs)
+				if (J.department == "research")
+					continue// this is so we can stick genetics and pathology under research without changing *anything* else:)
+				dat += LateJoinLink(J)
+			dat += {"<tr><td colspan='2'>&nbsp;</td></tr><tr><th colspan='2'>Civilian</th></tr>"}
+			for(var/datum/job/command/J in job_controls.staple_jobs)
+				if (J.department == "civilian")
+					dat += LateJoinLink(J)
+					break
+			for(var/datum/job/civilian/J in job_controls.staple_jobs)
+				dat += LateJoinLink(J)
 			for(var/datum/job/daily/J in job_controls.staple_jobs)
 				dat += LateJoinLink(J)
 
@@ -596,7 +642,7 @@ a.latejoin-card:hover {
 					dat += "</td></tr>"
 		dat += "</table></div>"
 
-		src.Browse(dat, "window=latechoices;size=800x666")
+		src.Browse(dat, "window=latechoices;size=800x777")
 		if(!bank_menu)
 			bank_menu = new
 		bank_menu.Subscribe( usr.client )

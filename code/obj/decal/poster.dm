@@ -534,14 +534,45 @@
 			name = "COLD LOOP"
 			icon_state = "wall_coldloop"
 
+		aarea
+			name = "area information sign"
+			desc = "A sign that lets you know that this is, in fact, a area."
+			icon_state = "wall_area"
+			popup_win = 1
+			imgw = 185
+			imgh = 235
+			img = "images/arts/posters/sign-area.jpg"
+
 		poster_hair
 			name = "Fabulous Hair!"
 			desc = "There's a bunch of ladies with really fancy hair pictured on this."
+			icon = 'icons/obj/decals/posters.dmi'
 			icon_state = "wall_poster_hair"
+
+		poster_idiotbastard
+			name = "Strange poster"
+			desc = "You have no idea what the hell this is."
+			icon = 'icons/obj/decals/posters.dmi'
+			icon_state = "idiotbastard"
+			popup_win = 1
+			imgw = 645
+			imgh = 545
+			img = "images/arts/posters/idiot-bastard.jpg"
+
+		poster_delari
+			name = "Framed portrait"
+			desc = "Thanks for the fun, friend."
+			icon = 'icons/obj/decals/posters.dmi'
+			icon_state = "delari"
+			popup_win = 1
+			imgw = 360
+			imgh = 410
+			img = "images/arts/posters/delari-by-killfrenzy.png"
 
 		poster_cool
 			name = "cool poster"
 			desc = "There's a couple people pictured on this poster, looking pretty cool."
+			icon = 'icons/obj/decals/posters.dmi'
 			icon_state = "wall_poster_cool3"
 			random_icon_states = list("wall_poster_cool", "wall_poster_cool2", "wall_poster_cool3")
 
@@ -599,6 +630,16 @@
 			imgh = 450
 			img = "images/arts/posters/y4nt-shitty.jpg"
 
+		poster_tiger
+			name = "tiger poster"
+			desc = "Wow, it's free! Totally worth it!"
+			icon = 'icons/obj/decals/posters.dmi'
+			icon_state = "tiger"
+			popup_win = 1
+			imgw = 410
+			imgh = 275
+			img = "images/arts/posters/tiger.png"
+
 		poster_beach
 			name = "beach poster"
 			desc = "Sun, sea, and sand! Just visit VR."
@@ -640,7 +681,7 @@
 																"wall_poster_beach",
 																"wall_poster_discount",
 																"wall_poster_octocluwne",
-																"wall_poser_eyetest")
+																"wall_poster_eyetest")
 
 		poster_mining
 			name = "mining poster"
@@ -774,8 +815,8 @@
 						src.name = "Pack Smart"
 						src.icon_state = "pack_smart"
 					if("contest-other2")
-						src.name = "Mindslaver Device Poster"
-						src.icon_state = "mindslaver"
+						src.name = "Insurgentr Device Poster"
+						src.icon_state = "insurgentr"
 					if("contest-other3")
 						src.name = "Edit Wiki"
 						src.icon_state = "edit_wiki"
@@ -798,7 +839,7 @@
 					if("code")
 						user << link("https://github.com/coolstation/coolstation")
 					if("edit_wiki")
-						user << link("https://wiki.ss13.co/")
+						user << link("https://wiki.coolstation.space/")
 
 		fuck1 //do not add this to the random sign rotation, fuck I is a long-lost relic overshadowed entirely by its successor
 			name = "\proper fuck"

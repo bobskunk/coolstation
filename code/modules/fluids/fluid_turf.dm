@@ -105,7 +105,7 @@
 			if (z != 3) //nono z3
 				for (var/dir in alldirs)
 					var/turf/T = get_step(src,dir)
-					if (istype(T, /turf/simulated))
+					if (issimulatedturf(T))
 						generateLight = 1
 						break
 
@@ -263,7 +263,7 @@
 		if (captured)
 			return
 
-		if (!prob(severity*20))
+		if (!prob(severity*10))
 			for (var/obj/O in src)
 				if (istype(O, /obj/lattice) || istype(O, /obj/cable/reinforced) || istype(O, /obj/item/heat_dowsing) || istype(O, /obj/machinery/conveyor) || istype(O,/obj/item/cable_coil/reinforced) )
 					return
@@ -383,6 +383,7 @@
 	generateLight = 0
 	allow_hole = 0
 	spawningFlags = SPAWN_DECOR | SPAWN_PLANTS | SPAWN_FISH | SPAWN_LOOT | SPAWN_HALLU
+	turf_flags = FLUID_MOVE | MINE_MAP_PRESENTS_EMPTY
 
 	blow_hole()
 		if(src.z == 5)
@@ -451,7 +452,7 @@
 /turf/space/fluid/manta/nospawn
 	spawningFlags = null
 
-/turf/simulated/floor/specialroom/sea_elevator_shaft
+/turf/floor/specialroom/sea_elevator_shaft
 	name = "elevator shaft"
 	desc = "It looks like it goes down a long ways."
 	icon_state = "moon_shaft"
@@ -567,7 +568,7 @@
 	if(location == 0) // at bottom
 		var/area/start_location = locate(lower)
 		var/area/end_location = locate(upper)
-		start_location.move_contents_to(end_location, /turf/simulated/floor/plating, ignore_fluid = 1)
+		start_location.move_contents_to(end_location, /turf/floor/plating, ignore_fluid = 1)
 		location = 1
 	else // at top
 		var/area/start_location = locate(upper)
@@ -578,7 +579,7 @@
 				M.changeStatus("weakened", 5 SECONDS)
 				M.emote("scream")
 				playsound(M.loc, "sound/impact_sounds/Flesh_Break_1.ogg", 90, 1)
-		start_location.move_contents_to(end_location, /turf/simulated/floor/specialroom/sea_elevator_shaft, ignore_fluid = 1)
+		start_location.move_contents_to(end_location, /turf/floor/specialroom/sea_elevator_shaft, ignore_fluid = 1)
 		location = 0
 
 	for(var/obj/machinery/computer/sea_elevator/C in machine_registry[MACHINES_ELEVATORCOMPS])

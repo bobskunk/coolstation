@@ -108,6 +108,7 @@
 	icon = 'icons/misc/worlds.dmi'
 	icon_state = "river"
 	anchored = 1
+	plane = PLANE_NOSHADOW_BELOW //You'd be amazed at what has depth shadows in space
 
 /obj/stone
 	name = "Stone"
@@ -303,6 +304,32 @@
 		src.update_icon()
 		src.interesting = "Looks like it was blown to pieces by some sort of explosive."
 		return
+
+	broccoliss
+		name = "bonsai \"broccoliss\" tree"
+		desc = "I don't think that Jeff guy knows what broccoli even is..."
+		anchored = 0
+		density = 1
+		anchored = 0
+
+		attackby(obj/item/W as obj, mob/user as mob)
+			if (!W) return
+			if (!user) return
+			if (src.destroyed) return
+			if (issnippingtool(W))
+				boutput(user, "<span class='notice'>You aimlessly snip the broccoliss tree. Whatever.</span>")
+			else
+				src.update_icon()
+				src.visible_message("<b><span class='alert'>[user] ravages the [src] with [W].</span></b>", 1)
+			return
+
+		update_icon()
+			if (!src) return
+			src.set_dir(NORTHEAST)
+			src.destroyed = 1
+			src.set_density(0)
+			src.desc = "Broccoliss no more."
+			playsound(src.loc, "sound/impact_sounds/Slimy_Hit_3.ogg", 100, 0)
 
 /obj/captain_bottleship
 	name = "\improper Captain's ship in a bottle"
@@ -1291,6 +1318,8 @@ obj/decoration/ceilingfan
 			var/obj/item/furniture_parts/P = new src.parts_type(src.loc)
 			if (P && src.material)
 				P.setMaterial(src.material)
+			if (P && src.color)
+				P.color = src.color
 		else
 			playsound(src.loc, "sound/items/Ratchet.ogg", 50, 1)
 			var/obj/item/sheet/S = new (src.loc)
