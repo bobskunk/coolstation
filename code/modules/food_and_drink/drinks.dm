@@ -263,7 +263,7 @@
 		var/drop_this_shit = 0 //i promise this is useful
 		if (src.is_open_container())
 			user.visible_message("[user] pops the tab on \the [src]!", "You pop \the [src] open!")
-			src.flags |= OPENCONTAINER
+			src.open_container()
 			can_chug = 1
 			playsound(src.loc, "sound/items/can_open.ogg", 50, 1)
 			return

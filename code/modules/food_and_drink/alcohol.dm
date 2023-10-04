@@ -10,7 +10,6 @@
 	cap_type = "cap"
 	heal_amt = 1
 	g_amt = 40
-	cap_type = 1
 	bottle_style = "brown"
 	label = "alcohol1"
 	initial_volume = 50
@@ -18,15 +17,10 @@
 
 /obj/item/reagent_containers/food/drinks/bottle/beer/borg
 	cap_type = "none"
-	cap = "none"
 	flags = FPRINT | TABLEPASS | OPENCONTAINER | SUPPRESSATTACK
 	unbreakable = 1
 	breakable = 0
 
-
-	New() //start open!
-		..()
-		src.flags |= OPENCONTAINER
 /obj/item/reagent_containers/food/drinks/bottle/fancy_beer
 	name = "fancy beer"
 	desc = "Some kind of fancy-pants IPA or lager or ale. Some sort of beer-type thing."
@@ -67,13 +61,45 @@
 	cap_type = "cork"
 	heal_amt = 1
 	g_amt = 40
-	cap_type = 2
 	bottle_style = "wine"
 	label = "wine"
 	fluid_style = "none"
 	initial_volume = 50
 	initial_reagents = list("wine"=30)
 	shard_amt = 2
+
+	attackby(obj/item/W as obj, mob/user as mob)
+		if (istype(W, /obj/item/bottleopener && src.is_open_container()))
+			var/obj/item/bottleopener/BO = W
+			if (BO.corkscrew && src.cap_type == "cork")
+				src.unseal(user)
+			else if (src.cap_type == "cork")
+				boutput(user, "<span class='notice'>You need a proper corkscrew for this.</span>")
+			else
+				boutput(user, "<span class='notice'>This is a screwtop, just use your hands.</span>")
+			return
+		else if (istype(W, /obj/item/cap/cork))
+			if (src.is_open_container() && src.cap_type == "cork")
+				src.recork(W, user)
+			else if (src.cap_type == "cork")
+				boutput(user, "<span class='notice'>[src] is already corked.</span>")
+			else
+				boutput(user, "<span class='notice'>This may be wine, but it's not the kind you cork.</span>")
+			return
+		else
+			..()
+			return
+
+	attack_self(mob/user as mob)
+		if (!src.is_open_container())
+			if (src.sealed)
+				if (src.cap_type == "screw")
+					src.unscrew(user)
+				else
+					src.uncork(user)
+
+			return
+		..()
 
 /obj/item/reagent_containers/food/drinks/bottle/hobo_wine
 	name = "fortified wine"
@@ -82,7 +108,6 @@
 	cap_type = "screw"
 	heal_amt = 1
 	g_amt = 40
-	cap_type = 3
 	bottle_style = "vermouth"
 	fluid_style = "vermouth"
 	label = "vermouth"
@@ -130,7 +155,6 @@
 	cap_type = "champagne"
 	alt_filled_state = 1
 	heal_amt = 1
-	alphatest_closecontainer = 1
 	g_amt = 60
 	initial_volume = 50
 	initial_reagents = list("champagne"=30)
@@ -162,9 +186,16 @@
 		if (src.broken)
 			..()
 			return
+
 		if (!src.is_open_container())
 			if (istype(W, /obj/item/bottleopener/corkscrew))
 				boutput(user, "<span class='notice'>It's too dangerous to open a bottle of a champagne with a corkscrew. Even worse, it's tacky!</span>")
+				return
+			if (istype(W, /obj/item/sword) || istype(W, /obj/item/katana) || istype(W, /obj/item/knife))
+				boutput(user, "<span class='notice'>Nice try, but not yet.</span>")
+				return
+			if (istype(W, /obj/item/kitchen/utensil/knife))
+				boutput(user, "<span class='notice'>Nice try, but that's not nearly big enough.</span>")
 				return
 			if (W) //something in hand?
 				boutput(user, "<span class='notice'>You gotta use your hands to pop that cork, bud!</span>")
@@ -172,35 +203,22 @@
 		else
 			if (istype(W, /obj/item/cap/champcork))
 				user.visible_message("<span class='notice'>[user] pops a cork back in \the [src].</span>", "<span class='notice'>You pop the cork back in \the [src].</span>")
-				playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
-				src.close_container()
+				src.recork()
 				qdel (W)
-				src.update_icon()
 				return
 			else if (istype(W, /obj/item/cap/cork))
 				user.visible_message("<span class='notice'>This is the wrong kind of cork. Ugh!</span>")
 				return
 		..()
 
-	afterattack(obj/target, mob/user, flag)
-		if (!src.is_open_container())
-			//if (src.unseal() != 2) //as a courtesy, sometimes things might not be open when they should be
-			boutput(user, "<span class='notice'>\The [src] needs to be opened first!</span>")
-			return //otherwise, done
-		..()
-
 	//the elaborate process of opening a champagne bottle
 	proc/unseal(var/mob/user as mob)
-		if (src.popped) //already done it, no pressure, easy
-			var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
-			C.set_loc(src)
-			user.put_in_hand_or_drop(C)
-			src.open_container()
-			playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
+		if (!src.sealed) //already done it, no pressure, easy
+			uncork(user, TRUE)
 			user.visible_message("[user] pulls the cork out of \the [src].",\
 			"<span class='notice'>You pull the cork out of \the [src]. It's not as fun as doing it the first time...]</span>")
-			src.update_icon()
 			return
+
 		var/bartender_bonus = 0
 		if (user.mind.assigned_role == "Bartender")
 			bartender_bonus = 3 //you make this look easy and fire the cork off further for theatrics
@@ -211,21 +229,23 @@
 			src.shakes++
 			return
 		if (src.shakes >= rand(1,5) || bartender_bonus) //succeed at shake on prob or bartender's magic touch
-			src.open_container() //open it
-			src.popped = 1
-			src.update_icon()
+			//handle feedback
 			playsound(src, "sound/items/CocktailShake.ogg", 25, 1, 3)
 			user.visible_message("[user] shakes up \the [src] some more, then pops the cork! [src.shakes >= 4 ? "Finally..." : "Party time!"]",\
 			"<span class='notice'>You shake up \the [src] some more and pop the cork! [src.shakes >= 4 ? "At least that's over with..." : "Alright!"]</span>")
 			sleep(2)
 			playsound(user, "sound/impact_sounds/Wood_Hit_Small_1.ogg", 50, 1)
-			//src.splashreagents(src.loc,splashamt=(src.shakes * 2)) //leave a puddle, for when i fix and implement bottle spilling/smashing
+			src.splashreagents(src.loc,splashamt=(src.shakes * 2)) //leave a puddle
+			//update item
+			src.open_container() //open it
+			src.sealed = 0
+			src.update_icon()
 			src.shakes = 0
 			//create cork and launch it further depending on the shakes
 			var/obj/item/cap/champcork/C = new/obj/item/cap/champcork
 			C.set_loc(user.loc)
 			C.throw_at(get_edge_target_turf(user, user.dir), (src.shakes + 2 + bartender_bonus), (3 + src.shakes))
-		else
+		else //you need to shake it more
 			src.shakes++
 			user.visible_message("[user] tries and fails to pop the cork, then shakes up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]",\
 			"<span class='notice'>You can't pop the cork, so you shake up \the [src] a bit more! [src.shakes >= 4 ? "This is starting to get a little embarrassing." : null]</span>")
@@ -349,7 +369,7 @@
 
 	New() //start open!
 		..()
-		src.flags |= OPENCONTAINER
+		src.open_container()
 
 /obj/item/reagent_containers/food/drinks/bottle/tequila
 	name = "tequila"
