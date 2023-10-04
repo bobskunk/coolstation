@@ -68,44 +68,11 @@
 	initial_reagents = list("wine"=30)
 	shard_amt = 2
 
-	attackby(obj/item/W as obj, mob/user as mob)
-		if (istype(W, /obj/item/bottleopener && src.is_open_container()))
-			var/obj/item/bottleopener/BO = W
-			if (BO.corkscrew && src.cap_type == "cork")
-				src.unseal(user)
-			else if (src.cap_type == "cork")
-				boutput(user, "<span class='notice'>You need a proper corkscrew for this.</span>")
-			else
-				boutput(user, "<span class='notice'>This is a screwtop, just use your hands.</span>")
-			return
-		else if (istype(W, /obj/item/cap/cork))
-			if (src.is_open_container() && src.cap_type == "cork")
-				src.recork(W, user)
-			else if (src.cap_type == "cork")
-				boutput(user, "<span class='notice'>[src] is already corked.</span>")
-			else
-				boutput(user, "<span class='notice'>This may be wine, but it's not the kind you cork.</span>")
-			return
-		else
-			..()
-			return
-
-	attack_self(mob/user as mob)
-		if (!src.is_open_container())
-			if (src.sealed)
-				if (src.cap_type == "screw")
-					src.unscrew(user)
-				else
-					src.uncork(user)
-
-			return
-		..()
-
 /obj/item/reagent_containers/food/drinks/bottle/hobo_wine
 	name = "fortified wine"
 	desc = "Some sort of bottom-shelf booze. Wasn't this brand banned awhile ago?"
 	icon_state = "bottle-vermouth"
-	cap_type = "screw"
+	cap_type = "screwtop"
 	heal_amt = 1
 	g_amt = 40
 	bottle_style = "vermouth"
@@ -138,6 +105,13 @@
 		while (adulterants > 0)
 			adulterants--
 			reagents.add_reagent(pick(adulterant_safety), rand(1,3))
+
+	attackby(obj/item/W as obj, mob/user as mob)
+		if (istype(W, /obj/item/cap/cork) && src.is_open_container())
+			boutput(user, "<span class='notice'>This may be wine, but it's not the kind you cork.</span>")
+			return
+		else
+			..()
 
 	UpdateName()
 		src.name = "[name_prefix(null, 1)][src.real_name][name_suffix(null, 1)]"
@@ -187,6 +161,7 @@
 			..()
 			return
 
+		//things to try to open it with
 		if (!src.is_open_container())
 			if (istype(W, /obj/item/bottleopener/corkscrew))
 				boutput(user, "<span class='notice'>It's too dangerous to open a bottle of a champagne with a corkscrew. Even worse, it's tacky!</span>")
@@ -200,6 +175,7 @@
 			if (W) //something in hand?
 				boutput(user, "<span class='notice'>You gotta use your hands to pop that cork, bud!</span>")
 				return
+		//things to try to close it with
 		else
 			if (istype(W, /obj/item/cap/champcork))
 				user.visible_message("<span class='notice'>[user] pops a cork back in \the [src].</span>", "<span class='notice'>You pop the cork back in \the [src].</span>")
@@ -210,9 +186,10 @@
 				user.visible_message("<span class='notice'>This is the wrong kind of cork. Ugh!</span>")
 				return
 		..()
+		return
 
 	//the elaborate process of opening a champagne bottle
-	proc/unseal(var/mob/user as mob)
+	unseal(var/mob/user as mob)
 		if (!src.sealed) //already done it, no pressure, easy
 			uncork(user, TRUE)
 			user.visible_message("[user] pulls the cork out of \the [src].",\
@@ -311,7 +288,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/rum
 	name = "rum"
 	desc = "Yo ho ho and all that."
-	cap_type = "screw"
+	cap_type = "screwtop"
 	bottle_style = "spicedrum"
 	fluid_style = "spicedrum"
 	label = "spicedrum"
@@ -350,7 +327,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/vodka
 	name = "vodka"
 	desc = "Space Soviet stuff. Pretty good quality."
-	cap_type = "screw"
+	cap_type = "screwtop"
 
 	icon_state = "bottle-vodka"
 	bottle_style = "vodka"
@@ -374,7 +351,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/tequila
 	name = "tequila"
 	desc = "Guadalajara is a crazy place, man, lemme tell you."
-	cap_type = "screw"
+	cap_type = "screwtop"
 	icon_state = "bottle-tequila"
 	bottle_style = "tequila"
 	fluid_style = "tequila"
@@ -389,7 +366,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/gin
 	name = "gin"
 	desc = "Gin is technically just a kind of alcohol that tastes strongly of juniper berries. Would juniper-flavored vodka count as a gin?"
-	cap_type = "screw"
+	cap_type = "screwtop"
 	icon_state = "bottle-gin"
 	bottle_style = "gin"
 	fluid_style = "gin"
@@ -404,7 +381,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/ntbrew
 	name = "NanoTrasen Brew"
 	desc = "Jesus, how long has this even been here?"
-	cap_type = "screw"
+	cap_type = "screwtop"
 	icon_state = "bottle-vermouth"
 	bottle_style = "vermouth"
 	fluid_style = "vermouth"
@@ -419,7 +396,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/thegoodstuff
 	name = "Stinkeye's Special Reserve"
 	desc = "An old bottle labelled 'The Good Stuff'. This probably has enough kick to knock an elephant on its ass."
-	cap_type = "screw"
+	cap_type = "screwtop"
 	icon_state = "bottle-whiskey"
 	bottle_style = "whiskey"
 	fluid_style = "whiskey"
@@ -435,7 +412,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/bojackson
 	name = "Bo Jack Daniel's"
 	desc = "Bo knows how to get you drunk, by diddley!"
-	cap_type = "screw"
+	cap_type = "screwtop"
 	icon_state = "bottle-whiskey"
 	bottle_style = "whiskey"
 	fluid_style = "whiskey"
